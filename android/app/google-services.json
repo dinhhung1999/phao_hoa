@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "329063888564",
+    "project_id": "phao-hoa-92aee",
+    "storage_bucket": "phao-hoa-92aee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:329063888564:android:878fc4b1f84149c72349e1",
+        "android_client_info": {
+          "package_name": "com.phaohoa.vn.phao_hoa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdeJtdDETQHUcmHqsCtC2wS89byJinpmc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

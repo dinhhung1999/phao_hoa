@@ -1,0 +1,35 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'app.dart';
+import 'core/services/notification_service.dart';
+import 'firebase_options.dart';
+import 'injection_container.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize dependency injection
+  await initDependencies();
+
+  // Initialize notifications & schedule daily reminder from saved settings
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.requestPermission();
+
+  final prefs = await SharedPreferences.getInstance();
+  final enabled = prefs.getBool('reminder_enabled') ?? true;
+  if (enabled) {
+    final hour = prefs.getInt('reminder_hour') ?? 20;
+    final minute = prefs.getInt('reminder_minute') ?? 0;
+    await notificationService.scheduleDailyReminder(
+        hour: hour, minute: minute);
+  }
+
+  runApp(const PhaoHoaApp());
+}

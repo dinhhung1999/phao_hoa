@@ -1,0 +1,13 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # @JsonKey on Freezed constructor params is idiomatic in Freezed 3.x
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    unnecessary_underscores: false

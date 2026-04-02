@@ -1,0 +1,175 @@
+import 'package:dartz/dartz.dart';
+import '../../core/errors/failures.dart';
+import '../../domain/entities/transaction.dart' as entity;
+import '../../domain/entities/transaction_item.dart';
+import '../../domain/repositories/transaction_repository.dart';
+import '../datasources/transaction_remote_datasource.dart';
+import '../models/transaction_model.dart';
+import '../models/transaction_item_model.dart';
+
+class TransactionRepositoryImpl implements TransactionRepository {
+  final TransactionRemoteDatasource _datasource;
+
+  TransactionRepositoryImpl(this._datasource);
+
+  @override
+  Future<Either<Failure, String>> createExportOrder({
+    required entity.Transaction transaction,
+    required List<TransactionItem> items,
+  }) async {
+    try {
+      final txModel = _txToModel(transaction);
+      final itemModels = items.map(_itemToModel).toList();
+      final id = await _datasource.createExportOrder(
+        transaction: txModel,
+        items: itemModels,
+      );
+      return Right(id);
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> createImportOrder({
+    required entity.Transaction transaction,
+    required List<TransactionItem> items,
+  }) async {
+    try {
+      final txModel = _txToModel(transaction);
+      final itemModels = items.map(_itemToModel).toList();
+      final id = await _datasource.createImportOrder(
+        transaction: txModel,
+        items: itemModels,
+      );
+      return Right(id);
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<entity.Transaction>>> getTransactionHistory({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+  }) async {
+    try {
+      final models = await _datasource.getTransactionHistory(
+        startDate: startDate,
+        endDate: endDate,
+        type: type,
+        warehouseLocation: warehouseLocation,
+      );
+      return Right(models.map(_txToEntity).toList());
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<entity.Transaction>>> getTransactionsByDate(
+    DateTime date,
+  ) async {
+    try {
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+      final models = await _datasource.getTransactionHistory(
+        startDate: startOfDay,
+        endDate: endOfDay,
+      );
+      return Right(models.map(_txToEntity).toList());
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, entity.Transaction>> getTransactionWithItems(
+    String id,
+  ) async {
+    try {
+      final (txModel, itemModels) =
+          await _datasource.getTransactionWithItems(id);
+      final items = itemModels.map(_itemToEntity).toList();
+      final tx = _txToEntity(txModel).copyWithItems(items);
+      return Right(tx);
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  entity.Transaction _txToEntity(TransactionModel m) => entity.Transaction(
+    id: m.id,
+    type: m.type,
+    customerId: m.customerId,
+    customerName: m.customerName,
+    customerType: m.customerType,
+    warehouseLocation: m.warehouseLocation,
+    isDebt: m.isDebt,
+    totalValue: m.totalValue,
+    paidAmount: m.paidAmount,
+    note: m.note,
+    createdAt: m.createdAt,
+    createdBy: m.createdBy,
+  );
+
+  TransactionModel _txToModel(entity.Transaction e) => TransactionModel(
+    id: e.id,
+    type: e.type,
+    customerId: e.customerId,
+    customerName: e.customerName,
+    customerType: e.customerType,
+    warehouseLocation: e.warehouseLocation,
+    isDebt: e.isDebt,
+    totalValue: e.totalValue,
+    paidAmount: e.paidAmount,
+    note: e.note,
+    createdAt: e.createdAt,
+    createdBy: e.createdBy,
+  );
+
+  TransactionItem _itemToEntity(TransactionItemModel m) => TransactionItem(
+    id: m.id,
+    productId: m.productId,
+    productName: m.productName,
+    category: m.category,
+    regulationClass: m.regulationClass,
+    quantity: m.quantity,
+    unitPriceAtTime: m.unitPriceAtTime,
+    subtotal: m.subtotal,
+  );
+
+  TransactionItemModel _itemToModel(TransactionItem e) => TransactionItemModel(
+    id: e.id,
+    productId: e.productId,
+    productName: e.productName,
+    category: e.category,
+    regulationClass: e.regulationClass,
+    quantity: e.quantity,
+    unitPriceAtTime: e.unitPriceAtTime,
+    subtotal: e.subtotal,
+  );
+}
+
+/// Extension to create a transaction copy with items
+extension TransactionCopyWith on entity.Transaction {
+  entity.Transaction copyWithItems(List<TransactionItem> items) {
+    return entity.Transaction(
+      id: this.id,
+      type: type,
+      customerId: customerId,
+      customerName: customerName,
+      customerType: customerType,
+      warehouseLocation: warehouseLocation,
+      isDebt: isDebt,
+      totalValue: totalValue,
+      paidAmount: paidAmount,
+      note: note,
+      createdAt: createdAt,
+      createdBy: createdBy,
+      items: items,
+    );
+  }
+}
