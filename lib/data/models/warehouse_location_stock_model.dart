@@ -23,13 +23,22 @@ abstract class WarehouseLocationStockModel with _$WarehouseLocationStockModel {
 
   factory WarehouseLocationStockModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    // Ensure stock_by_location values are ints
+    // Ensure stock_by_location values are ints and normalize keys
     final rawStock = data['stock_by_location'] as Map<String, dynamic>? ?? {};
-    final stockMap = rawStock.map((k, v) => MapEntry(k, (v as num).toInt()));
+    final normalizedStock = <String, int>{};
+    for (final entry in rawStock.entries) {
+      // Normalize key: 'Kho 1' → 'kho_1', 'kho_1' stays 'kho_1'
+      final key = entry.key.startsWith('kho_')
+          ? entry.key
+          : entry.key.toLowerCase().replaceAll(' ', '_');
+      final value = (entry.value as num).toInt();
+      // Merge values: if both 'Kho 1' and 'kho_1' exist, sum them
+      normalizedStock[key] = (normalizedStock[key] ?? 0) + value;
+    }
     return WarehouseLocationStockModel.fromJson({
       ...data,
       'id': doc.id,
-      'stock_by_location': stockMap,
+      'stock_by_location': normalizedStock,
     });
   }
 }

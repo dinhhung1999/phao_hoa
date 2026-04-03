@@ -27,4 +27,14 @@ class CurrencyFormatter {
       return null;
     }
   }
+
+  /// Format as plain digits without separators or symbols
+  /// Example: 1500000.0 → "1500000"
+  /// Used for pre-populating editable price fields.
+  static String formatPlain(num amount) {
+    if (amount == amount.roundToDouble()) {
+      return amount.toInt().toString();
+    }
+    return amount.toString();
+  }
 }

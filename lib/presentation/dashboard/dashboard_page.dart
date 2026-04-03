@@ -6,11 +6,9 @@ import '../../core/utils/currency_formatter.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/error_widget.dart';
 import '../../domain/entities/warehouse_stock.dart';
-import '../journal/transaction_bloc.dart';
 import 'dashboard_bloc.dart';
 import 'inventory_detail_sheet.dart';
 import 'reconciliation_page.dart';
-import 'statistics_page.dart';
 
 /// Tab 1: Dashboard / Tồn kho — redesigned for clarity & visual impact
 class DashboardPage extends StatefulWidget {
@@ -25,8 +23,8 @@ class _DashboardPageState extends State<DashboardPage>
   late final TabController _tabController;
   String _searchQuery = '';
 
-  // Location keys matching the warehouseLocationNames order
-  static const _locationKeys = ['kho_1', 'kho_2', 'kho_3'];
+  // Location keys from central constants
+  static List<String> get _locationKeys => AppConstants.warehouseLocationKeys;
 
   // Stock level thresholds
   static const int _criticalThreshold = 5;
@@ -87,65 +85,54 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tồn kho'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bar_chart_outlined),
-            tooltip: 'Thống kê',
+    // No Scaffold/AppBar here — HomePage handles the shared AppBar
+    return Stack(
+      children: [
+        BlocBuilder<DashboardBloc, DashboardState>(
+          builder: (context, state) {
+            return state.map(
+              initial: (_) {
+                context
+                    .read<DashboardBloc>()
+                    .add(const DashboardEvent.loadDashboard());
+                return const AppLoadingIndicator();
+              },
+              loading: (_) => const AppLoadingIndicator(
+                message: 'Đang tải dữ liệu...',
+              ),
+              loaded: (loaded) => _buildBody(loaded.stocks, loaded.totalValue),
+              error: (e) => AppErrorWidget(
+                message: e.message,
+                onRetry: () => context
+                    .read<DashboardBloc>()
+                    .add(const DashboardEvent.loadDashboard()),
+              ),
+            );
+          },
+        ),
+        // Floating action button for reconciliation
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton.extended(
+            heroTag: 'fab_dashboard',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => BlocProvider.value(
-                    value: context.read<TransactionBloc>(),
-                    child: const StatisticsPage(),
+                    value: context.read<DashboardBloc>(),
+                    child: const ReconciliationPage(),
                   ),
                 ),
               );
             },
+            icon: const Icon(Icons.fact_check_outlined),
+            label: const Text('Đối soát'),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_dashboard',
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<DashboardBloc>(),
-                child: const ReconciliationPage(),
-              ),
-            ),
-          );
-        },
-        icon: const Icon(Icons.fact_check_outlined),
-        label: const Text('Đối soát'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: BlocBuilder<DashboardBloc, DashboardState>(
-        builder: (context, state) {
-          return state.map(
-            initial: (_) {
-              context
-                  .read<DashboardBloc>()
-                  .add(const DashboardEvent.loadDashboard());
-              return const AppLoadingIndicator();
-            },
-            loading: (_) => const AppLoadingIndicator(
-              message: 'Đang tải dữ liệu...',
-            ),
-            loaded: (loaded) => _buildBody(loaded.stocks, loaded.totalValue),
-            error: (e) => AppErrorWidget(
-              message: e.message,
-              onRetry: () => context
-                  .read<DashboardBloc>()
-                  .add(const DashboardEvent.loadDashboard()),
-            ),
-          );
-        },
-      ),
+        ),
+      ],
     );
   }
 
@@ -458,7 +445,7 @@ class _StockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCritical = displayQuantity < criticalThreshold;
-    final locationKeys = ['kho_1', 'kho_2', 'kho_3'];
+    final locationKeys = AppConstants.warehouseLocationKeys;
 
     return Card(
       elevation: isCritical ? 2 : 1,

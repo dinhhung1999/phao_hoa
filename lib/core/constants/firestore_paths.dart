@@ -16,6 +16,7 @@ class FirestorePaths {
   static const String debtRecords = 'debt_records';
   static const String reconciliationItems = 'items';
 
-  // App config document
+  // App config documents
   static const String settingsDoc = 'settings';
+  static const String warehouseConfigDoc = 'warehouse_config';
 }

@@ -9,7 +9,7 @@ class InventoryDetailSheet extends StatelessWidget {
 
   const InventoryDetailSheet({super.key, required this.stock});
 
-  static const _locationKeys = ['kho_1', 'kho_2', 'kho_3'];
+  static List<String> get _locationKeys => AppConstants.warehouseLocationKeys;
   static const _locationIcons = [
     Icons.warehouse,
     Icons.warehouse_outlined,

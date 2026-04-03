@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_paths.dart';
 import '../models/transaction_model.dart';
 import '../models/transaction_item_model.dart';
@@ -18,6 +19,10 @@ class TransactionRemoteDatasource {
   CollectionReference get _custCollection =>
       _firestore.collection(FirestorePaths.customers);
 
+  /// Convert warehouse display name to Firestore storage key
+  String _toLocationKey(String warehouseLocation) =>
+      AppConstants.getLocationKey(warehouseLocation);
+
   /// Create export order with atomic batch write
   Future<String> createExportOrder({
     required TransactionModel transaction,
@@ -26,6 +31,7 @@ class TransactionRemoteDatasource {
     final batch = _firestore.batch();
     final txDocRef = _txCollection.doc();
     final txId = txDocRef.id;
+    final locationKey = _toLocationKey(transaction.warehouseLocation);
 
     // 1. Create transaction document
     final txData = transaction.toJson()..remove('id');
@@ -39,14 +45,21 @@ class TransactionRemoteDatasource {
     }
 
     // 3. Update inventory (decrease stock at location)
+    // Use set+merge to handle case where doc or field doesn't exist yet
     for (final item in items) {
       final invRef = _invCollection.doc(item.productId);
-      batch.update(invRef, {
-        'stock_by_location.${transaction.warehouseLocation}':
-            FieldValue.increment(-item.quantity),
-        'total_quantity': FieldValue.increment(-item.quantity),
-        'last_updated': FieldValue.serverTimestamp(),
-      });
+      batch.set(
+        invRef,
+        {
+          'product_id': item.productId,
+          'product_name': item.productName,
+          'stock_by_location.$locationKey':
+              FieldValue.increment(-item.quantity),
+          'total_quantity': FieldValue.increment(-item.quantity),
+          'last_updated': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
     }
 
     // 4. Create debt record if applicable
@@ -84,6 +97,7 @@ class TransactionRemoteDatasource {
     final batch = _firestore.batch();
     final txDocRef = _txCollection.doc();
     final txId = txDocRef.id;
+    final locationKey = _toLocationKey(transaction.warehouseLocation);
 
     // 1. Create transaction
     final txData = transaction.toJson()..remove('id');
@@ -97,6 +111,7 @@ class TransactionRemoteDatasource {
     }
 
     // 3. Update inventory (increase stock at location)
+    // Use dot notation for nested field to work correctly with FieldValue.increment
     for (final item in items) {
       final invRef = _invCollection.doc(item.productId);
       batch.set(
@@ -104,9 +119,7 @@ class TransactionRemoteDatasource {
         {
           'product_id': item.productId,
           'product_name': item.productName,
-          'stock_by_location': {
-            transaction.warehouseLocation: FieldValue.increment(item.quantity),
-          },
+          'stock_by_location.$locationKey': FieldValue.increment(item.quantity),
           'total_quantity': FieldValue.increment(item.quantity),
           'last_updated': FieldValue.serverTimestamp(),
         },

@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/currency_formatter.dart';
-import '../../core/utils/validators.dart';
+import '../../core/utils/expression_evaluator.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/transaction.dart' as entity;
 import '../../domain/entities/transaction_item.dart';
@@ -46,18 +46,28 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     _sourceCtl.dispose();
     _noteCtl.dispose();
     for (final item in _items) {
-      item.quantityCtl.dispose();
+      item.dispose();
     }
     super.dispose();
   }
 
   double get _totalValue {
     return _items.fold(0.0, (sum, item) {
-      final qty = int.tryParse(item.quantityCtl.text) ?? 0;
-      final price =
-          widget.isExport ? item.product.exportPrice : item.product.importPrice;
+      final qty = _resolveQuantity(item.quantityCtl.text);
+      final price = _resolvePrice(item);
       return sum + (qty * price);
     });
+  }
+
+  /// Resolve quantity from text, supporting expressions like 7*24
+  int _resolveQuantity(String text) {
+    return ExpressionEvaluator.tryEvaluate(text) ?? 0;
+  }
+
+  /// Resolve price from the editable price controller
+  double _resolvePrice(_ItemEntry item) {
+    final text = item.priceCtl.text.replaceAll(RegExp(r'[^\d]'), '');
+    return double.tryParse(text) ?? 0;
   }
 
   void _addItem(Product product) {
@@ -68,18 +78,36 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
       );
       return;
     }
+    final defaultPrice =
+        widget.isExport ? product.exportPrice : product.importPrice;
     setState(() {
       _items.add(_ItemEntry(
-          product: product,
-          quantityCtl: TextEditingController(text: '1')));
+        product: product,
+        quantityCtl: TextEditingController(text: '1'),
+        priceCtl: TextEditingController(
+          text: CurrencyFormatter.formatPlain(defaultPrice),
+        ),
+      ));
     });
   }
 
   void _removeItem(int index) {
     setState(() {
-      _items[index].quantityCtl.dispose();
+      _items[index].dispose();
       _items.removeAt(index);
     });
+  }
+
+  /// Evaluate expression in quantity field when user finishes editing
+  void _evaluateQuantityExpression(_ItemEntry item) {
+    final text = item.quantityCtl.text.trim();
+    if (ExpressionEvaluator.isExpression(text)) {
+      final result = ExpressionEvaluator.tryEvaluate(text);
+      if (result != null && result > 0) {
+        item.quantityCtl.text = result.toString();
+        setState(() {});
+      }
+    }
   }
 
   void _submit() {
@@ -93,9 +121,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
 
     final now = DateTime.now();
     final items = _items.map((e) {
-      final qty = int.tryParse(e.quantityCtl.text) ?? 0;
-      final price =
-          widget.isExport ? e.product.exportPrice : e.product.importPrice;
+      final qty = _resolveQuantity(e.quantityCtl.text);
+      final price = _resolvePrice(e);
       return TransactionItem(
         id: '',
         productId: e.product.id,
@@ -173,267 +200,368 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
           },
         );
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title:
-              Text(widget.isExport ? 'Tạo phiếu xuất kho' : 'Tạo phiếu nhập kho'),
-        ),
-        body: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              // ── Type indicator ──
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: color.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      widget.isExport
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward,
-                      color: color,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      widget.isExport
-                          ? 'Phiếu xuất — Hàng ra khỏi kho'
-                          : 'Phiếu nhập — Hàng vào kho',
-                      style: TextStyle(
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          appBar: AppBar(
+            title:
+                Text(widget.isExport ? 'Tạo phiếu xuất kho' : 'Tạo phiếu nhập kho'),
+          ),
+          body: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                // ── Type indicator ──
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: color.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        widget.isExport
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
                         color: color,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        size: 20,
                       ),
+                      const SizedBox(width: 10),
+                      Text(
+                        widget.isExport
+                            ? 'Phiếu xuất — Hàng ra khỏi kho'
+                            : 'Phiếu nhập — Hàng vào kho',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Warehouse selector ──
+                DropdownButtonFormField<String>(
+                  initialValue: _warehouseLocation,
+                  decoration: const InputDecoration(
+                    labelText: 'Chọn kho *',
+                    prefixIcon: Icon(Icons.warehouse_outlined),
+                  ),
+                  items: AppConstants.warehouseLocationNames.map((name) {
+                    return DropdownMenuItem(value: name, child: Text(name));
+                  }).toList(),
+                  onChanged: (v) => setState(
+                      () => _warehouseLocation = v ?? _warehouseLocation),
+                ),
+                const SizedBox(height: 16),
+
+                // ── Source / Destination (optional) ──
+                TextFormField(
+                  controller: _sourceCtl,
+                  decoration: InputDecoration(
+                    labelText: widget.isExport
+                        ? 'Nơi nhận / Lý do xuất'
+                        : 'Nguồn nhập / Nhà cung cấp',
+                    prefixIcon: Icon(
+                      widget.isExport
+                          ? Icons.local_shipping_outlined
+                          : Icons.business_outlined,
+                    ),
+                    hintText: widget.isExport
+                        ? 'VD: Chuyển kho, Trưng bày, ...'
+                        : 'VD: Nhà cung cấp A, Nhập bổ sung, ...',
+                  ),
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 8),
+
+                const Divider(),
+                const SizedBox(height: 8),
+
+                // ── Products section ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Sản phẩm',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _showProductPicker(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Thêm'),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 8),
 
-              // ── Warehouse selector ──
-              DropdownButtonFormField<String>(
-                initialValue: _warehouseLocation,
-                decoration: const InputDecoration(
-                  labelText: 'Chọn kho *',
-                  prefixIcon: Icon(Icons.warehouse_outlined),
-                ),
-                items: AppConstants.warehouseLocationNames.map((name) {
-                  return DropdownMenuItem(value: name, child: Text(name));
-                }).toList(),
-                onChanged: (v) => setState(
-                    () => _warehouseLocation = v ?? _warehouseLocation),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Source / Destination (optional) ──
-              TextFormField(
-                controller: _sourceCtl,
-                decoration: InputDecoration(
-                  labelText: widget.isExport
-                      ? 'Nơi nhận / Lý do xuất'
-                      : 'Nguồn nhập / Nhà cung cấp',
-                  prefixIcon: Icon(
-                    widget.isExport
-                        ? Icons.local_shipping_outlined
-                        : Icons.business_outlined,
-                  ),
-                  hintText: widget.isExport
-                      ? 'VD: Chuyển kho, Trưng bày, ...'
-                      : 'VD: Nhà cung cấp A, Nhập bổ sung, ...',
-                ),
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 8),
-
-              const Divider(),
-              const SizedBox(height: 8),
-
-              // ── Products section ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Sản phẩm',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => _showProductPicker(context),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Thêm'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              if (_items.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(Icons.inventory_2_outlined,
-                              size: 40, color: AppColors.textHint),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Chưa có sản phẩm nào\nNhấn "Thêm" để chọn sản phẩm',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.textSecondary),
-                          ),
-                        ],
+                if (_items.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.inventory_2_outlined,
+                                size: 40, color: AppColors.textHint),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Chưa có sản phẩm nào\nNhấn "Thêm" để chọn sản phẩm',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                )
-              else
-                ...List.generate(_items.length, (i) {
-                  final item = _items[i];
-                  final price = widget.isExport
-                      ? item.product.exportPrice
-                      : item.product.importPrice;
-                  final qty = int.tryParse(item.quantityCtl.text) ?? 0;
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                  )
+                else
+                  ...List.generate(_items.length, (i) {
+                    final item = _items[i];
+                    final price = _resolvePrice(item);
+                    final qty = _resolveQuantity(item.quantityCtl.text);
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Row 1: Product name + remove button
+                            Row(
                               children: [
-                                Text(
-                                  item.product.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600),
+                                Expanded(
+                                  child: Text(
+                                    item.product.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15),
+                                  ),
                                 ),
-                                Text(
-                                  'Đơn giá: ${CurrencyFormatter.format(price)}',
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () => _removeItem(i),
+                                  color: AppColors.error,
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Row 2: Price + Quantity + Subtotal
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Editable price field
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Đơn giá',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    SizedBox(
+                                      width: 110,
+                                      child: TextFormField(
+                                        controller: item.priceCtl,
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.end,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(
+                                              vertical: 8, horizontal: 8),
+                                          suffixText: 'đ',
+                                          suffixStyle: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        style: const TextStyle(fontSize: 13),
+                                        validator: (v) {
+                                          final parsed = double.tryParse(
+                                              (v ?? '').replaceAll(
+                                                  RegExp(r'[^\d]'), ''));
+                                          if (parsed == null || parsed <= 0) {
+                                            return 'Giá > 0';
+                                          }
+                                          return null;
+                                        },
+                                        onChanged: (_) => setState(() {}),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 8),
+                                // Quantity field with expression support
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Số lượng',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    SizedBox(
+                                      width: 80,
+                                      child: TextFormField(
+                                        controller: item.quantityCtl,
+                                        keyboardType: TextInputType.text,
+                                        textAlign: TextAlign.center,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(
+                                              vertical: 8, horizontal: 8),
+                                          hintText: 'VD: 7*24',
+                                          hintStyle: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.textHint,
+                                          ),
+                                        ),
+                                        style: const TextStyle(fontSize: 13),
+                                        validator: (v) {
+                                          if (v == null || v.trim().isEmpty) {
+                                            return 'Nhập SL';
+                                          }
+                                          final result =
+                                              ExpressionEvaluator.tryEvaluate(v);
+                                          if (result == null || result <= 0) {
+                                            return 'SL > 0';
+                                          }
+                                          return null;
+                                        },
+                                        onChanged: (_) => setState(() {}),
+                                        onEditingComplete: () {
+                                          _evaluateQuantityExpression(item);
+                                          FocusScope.of(context).nextFocus();
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 8),
+                                // Subtotal
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'Thành tiền',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        CurrencyFormatter.format(qty * price),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          color: color,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          SizedBox(
-                            width: 70,
-                            child: TextFormField(
-                              controller: item.quantityCtl,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                    vertical: 8, horizontal: 8),
-                              ),
-                              validator: Validators.validateQuantity,
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+
+                const SizedBox(height: 12),
+
+                // Total
+                if (_items.isNotEmpty)
+                  Card(
+                    color: color.withValues(alpha: 0.05),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('TỔNG CỘNG',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
                           Text(
-                            CurrencyFormatter.format(qty * price),
+                            CurrencyFormatter.format(_totalValue),
                             style: TextStyle(
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
                               color: color,
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 18),
-                            onPressed: () => _removeItem(i),
-                            color: AppColors.error,
-                            visualDensity: VisualDensity.compact,
                           ),
                         ],
                       ),
                     ),
-                  );
-                }),
+                  ),
 
-              const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-              // Total
-              if (_items.isNotEmpty)
-                Card(
-                  color: color.withValues(alpha: 0.05),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('TỔNG CỘNG',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(
-                          CurrencyFormatter.format(_totalValue),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: color,
+                // Note
+                TextFormField(
+                  controller: _noteCtl,
+                  decoration: const InputDecoration(
+                    labelText: 'Ghi chú',
+                    prefixIcon: Icon(Icons.note_outlined),
+                    hintText: 'Ghi chú thêm (tùy chọn)',
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 24),
+
+                // Submit
+                SizedBox(
+                  height: 50,
+                  child: BlocBuilder<TransactionBloc, TransactionState>(
+                    builder: (context, state) {
+                      final isLoading =
+                          state.mapOrNull(loading: (_) => true) ?? false;
+                      return ElevatedButton.icon(
+                        onPressed: isLoading ? null : _submit,
+                        icon: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : Icon(widget.isExport
+                                ? Icons.arrow_upward
+                                : Icons.arrow_downward),
+                        label: Text(widget.isExport
+                            ? 'Xác nhận xuất kho'
+                            : 'Xác nhận nhập kho'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: color,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
-
-              const SizedBox(height: 16),
-
-              // Note
-              TextFormField(
-                controller: _noteCtl,
-                decoration: const InputDecoration(
-                  labelText: 'Ghi chú',
-                  prefixIcon: Icon(Icons.note_outlined),
-                  hintText: 'Ghi chú thêm (tùy chọn)',
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 24),
-
-              // Submit
-              SizedBox(
-                height: 50,
-                child: BlocBuilder<TransactionBloc, TransactionState>(
-                  builder: (context, state) {
-                    final isLoading =
-                        state.mapOrNull(loading: (_) => true) ?? false;
-                    return ElevatedButton.icon(
-                      onPressed: isLoading ? null : _submit,
-                      icon: isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : Icon(widget.isExport
-                              ? Icons.arrow_upward
-                              : Icons.arrow_downward),
-                      label: Text(widget.isExport
-                          ? 'Xác nhận xuất kho'
-                          : 'Xác nhận nhập kho'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: color,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -459,58 +587,93 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                     child: CircularProgressIndicator.adaptive()),
                 loading: (_) => const Center(
                     child: CircularProgressIndicator.adaptive()),
-                loaded: (loaded) => Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.divider,
-                        borderRadius: BorderRadius.circular(2),
+                loaded: (loaded) {
+                  // Group products by category
+                  final productsByCategory = <String, List<Product>>{};
+                  for (final p in loaded.products) {
+                    productsByCategory.putIfAbsent(p.category, () => []).add(p);
+                  }
+                  final categories = productsByCategory.keys.toList()..sort();
+
+                  return Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.divider,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text('Chọn sản phẩm',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: loaded.products.isEmpty
-                          ? const Center(
-                              child: Text('Chưa có sản phẩm nào'))
-                          : ListView.builder(
-                              controller: scrollController,
-                              itemCount: loaded.products.length,
-                              itemBuilder: (context, index) {
-                                final product = loaded.products[index];
-                                final alreadyAdded = _items
-                                    .any((e) => e.product.id == product.id);
-                                final price = widget.isExport
-                                    ? product.exportPrice
-                                    : product.importPrice;
-                                return ListTile(
-                                  title: Text(product.name),
-                                  subtitle: Text(
-                                    '${product.category} • ${CurrencyFormatter.format(price)}',
-                                  ),
-                                  trailing: alreadyAdded
-                                      ? const Icon(Icons.check,
-                                          color: AppColors.success)
-                                      : const Icon(
-                                          Icons.add_circle_outline),
-                                  onTap: alreadyAdded
-                                      ? null
-                                      : () {
-                                          _addItem(product);
-                                          Navigator.pop(context);
-                                        },
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 12),
+                      const Text('Chọn sản phẩm',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: loaded.products.isEmpty
+                            ? const Center(
+                                child: Text('Chưa có sản phẩm nào'))
+                            : ListView.builder(
+                                controller: scrollController,
+                                itemCount: categories.length,
+                                itemBuilder: (context, catIndex) {
+                                  final category = categories[catIndex];
+                                  final products = productsByCategory[category]!;
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Category header
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            16, 12, 16, 4),
+                                        child: Text(
+                                          category,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                      // Products in this category
+                                      ...products.map((product) {
+                                        final alreadyAdded = _items.any(
+                                            (e) =>
+                                                e.product.id == product.id);
+                                        final price = widget.isExport
+                                            ? product.exportPrice
+                                            : product.importPrice;
+                                        return ListTile(
+                                          title: Text(product.name),
+                                          subtitle: Text(
+                                            CurrencyFormatter.format(price),
+                                          ),
+                                          trailing: alreadyAdded
+                                              ? const Icon(Icons.check,
+                                                  color: AppColors.success)
+                                              : const Icon(
+                                                  Icons.add_circle_outline),
+                                          onTap: alreadyAdded
+                                              ? null
+                                              : () {
+                                                  _addItem(product);
+                                                  Navigator.pop(context);
+                                                },
+                                        );
+                                      }),
+                                      if (catIndex < categories.length - 1)
+                                        const Divider(height: 1),
+                                    ],
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  );
+                },
                 actionSuccess: (_) => const Center(
                     child: CircularProgressIndicator.adaptive()),
                 error: (e) => Center(child: Text(e.message)),
@@ -526,6 +689,16 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
 class _ItemEntry {
   final Product product;
   final TextEditingController quantityCtl;
+  final TextEditingController priceCtl;
 
-  _ItemEntry({required this.product, required this.quantityCtl});
+  _ItemEntry({
+    required this.product,
+    required this.quantityCtl,
+    required this.priceCtl,
+  });
+
+  void dispose() {
+    quantityCtl.dispose();
+    priceCtl.dispose();
+  }
 }
