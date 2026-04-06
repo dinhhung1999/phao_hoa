@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failures.dart';
+import '../../../core/models/paginated_result.dart';
 import '../../entities/customer.dart';
 import '../../entities/debt_record.dart';
 import '../../repositories/customer_repository.dart';
@@ -81,5 +82,17 @@ class SettleAllDebts {
 
   Future<Either<Failure, void>> call(String customerId) =>
       _repository.settleAllDebts(customerId);
+}
+
+/// Get customers with pagination
+class GetCustomersPaginated {
+  final CustomerRepository _repository;
+
+  GetCustomersPaginated(this._repository);
+
+  Future<Either<Failure, PaginatedResult<Customer>>> call({
+    int limit = 20,
+    dynamic startAfter,
+  }) => _repository.getCustomersPaginated(limit: limit, startAfter: startAfter);
 }
 

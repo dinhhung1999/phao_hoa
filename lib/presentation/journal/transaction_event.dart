@@ -18,4 +18,21 @@ sealed class TransactionEvent with _$TransactionEvent {
     required entity.Transaction transaction,
     required List<TransactionItem> items,
   }) = _CreateImport;
+
+  // Pagination events
+  const factory TransactionEvent.loadHistoryPaginated({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+  }) = _LoadHistoryPaginated;
+
+  const factory TransactionEvent.loadMoreHistory() = _LoadMoreHistory;
+
+  const factory TransactionEvent.refreshHistory({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+  }) = _RefreshHistory;
 }

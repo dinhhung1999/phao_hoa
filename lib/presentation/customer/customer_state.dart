@@ -12,4 +12,13 @@ sealed class CustomerState with _$CustomerState {
   }) = _DebtsLoaded;
   const factory CustomerState.actionSuccess(String message) = _ActionSuccess;
   const factory CustomerState.error(String message) = _Error;
+
+  // Paginated state
+  const factory CustomerState.paginatedLoaded({
+    required List<Customer> customers,
+    required bool hasMore,
+    @Default(false) bool isLoadingMore,
+    dynamic lastDocument,
+    String? error,
+  }) = _PaginatedLoaded;
 }

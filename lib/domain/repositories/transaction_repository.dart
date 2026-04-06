@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
+import '../../core/models/paginated_result.dart';
 import '../entities/transaction.dart';
 import '../entities/transaction_item.dart';
 
@@ -32,4 +33,14 @@ abstract class TransactionRepository {
 
   /// Get transaction with its items
   Future<Either<Failure, Transaction>> getTransactionWithItems(String id);
+
+  /// Get transaction history with pagination
+  Future<Either<Failure, PaginatedResult<Transaction>>> getTransactionHistoryPaginated({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+    int limit = 20,
+    dynamic startAfter,
+  });
 }

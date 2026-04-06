@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failures.dart';
+import '../../../core/models/paginated_result.dart';
 import '../../entities/product.dart';
 import '../../repositories/product_repository.dart';
 
@@ -50,4 +51,16 @@ class WatchAllProducts {
   WatchAllProducts(this._repository);
 
   Stream<List<Product>> call() => _repository.watchAllProducts();
+}
+
+/// Get products with pagination
+class GetProductsPaginated {
+  final ProductRepository _repository;
+
+  GetProductsPaginated(this._repository);
+
+  Future<Either<Failure, PaginatedResult<Product>>> call({
+    int limit = 20,
+    dynamic startAfter,
+  }) => _repository.getProductsPaginated(limit: limit, startAfter: startAfter);
 }

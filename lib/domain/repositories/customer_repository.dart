@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
+import '../../core/models/paginated_result.dart';
 import '../entities/customer.dart';
 import '../entities/debt_record.dart';
 
@@ -35,4 +36,10 @@ abstract class CustomerRepository {
 
   /// Soft-delete a customer (set isActive to false)
   Future<Either<Failure, void>> deleteCustomer(String customerId);
+
+  /// Get customers with pagination
+  Future<Either<Failure, PaginatedResult<Customer>>> getCustomersPaginated({
+    int limit = 20,
+    dynamic startAfter,
+  });
 }

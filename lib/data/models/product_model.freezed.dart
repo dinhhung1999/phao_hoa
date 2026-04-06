@@ -219,12 +219,12 @@ return $default(_that.id,_that.name,_that.category,_that.regulationClass,_that.u
 @JsonSerializable()
 
 class _ProductModel implements ProductModel {
-  const _ProductModel({this.id = '', required this.name, required this.category, @JsonKey(name: 'regulation_class') required this.regulationClass, required this.unit, @JsonKey(name: 'import_price') required this.importPrice, @JsonKey(name: 'export_price') required this.exportPrice, @JsonKey(name: 'is_active') this.isActive = true, @JsonKey(name: 'created_at', fromJson: timestampFromJson, toJson: timestampToJson) required this.createdAt, @JsonKey(name: 'updated_at', fromJson: timestampFromJson, toJson: timestampToJson) required this.updatedAt, @JsonKey(name: 'updated_by') this.updatedBy});
+  const _ProductModel({this.id = '', required this.name, this.category = '', @JsonKey(name: 'regulation_class') this.regulationClass = '', required this.unit, @JsonKey(name: 'import_price') required this.importPrice, @JsonKey(name: 'export_price') required this.exportPrice, @JsonKey(name: 'is_active') this.isActive = true, @JsonKey(name: 'created_at', fromJson: timestampFromJson, toJson: timestampToJson) required this.createdAt, @JsonKey(name: 'updated_at', fromJson: timestampFromJson, toJson: timestampToJson) required this.updatedAt, @JsonKey(name: 'updated_by') this.updatedBy});
   factory _ProductModel.fromJson(Map<String, dynamic> json) => _$ProductModelFromJson(json);
 
 @override@JsonKey() final  String id;
 @override final  String name;
-@override final  String category;
+@override@JsonKey() final  String category;
 @override@JsonKey(name: 'regulation_class') final  String regulationClass;
 @override final  String unit;
 @override@JsonKey(name: 'import_price') final  double importPrice;

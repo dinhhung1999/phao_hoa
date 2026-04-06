@@ -10,14 +10,19 @@ part 'transaction_bloc.freezed.dart';
 
 class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final GetTransactionHistory _getHistory;
+  final GetTransactionHistoryPaginated _getHistoryPaginated;
   final CreateExportOrder _createExport;
   final CreateImportOrder _createImport;
 
+  static const int _pageSize = 20;
+
   TransactionBloc({
     required GetTransactionHistory getHistory,
+    required GetTransactionHistoryPaginated getHistoryPaginated,
     required CreateExportOrder createExport,
     required CreateImportOrder createImport,
   })  : _getHistory = getHistory,
+        _getHistoryPaginated = getHistoryPaginated,
         _createExport = createExport,
         _createImport = createImport,
         super(const TransactionState.initial()) {
@@ -26,10 +31,14 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         loadHistory: (e) => _onLoadHistory(e, emit),
         createExport: (e) => _onCreateExport(e, emit),
         createImport: (e) => _onCreateImport(e, emit),
+        loadHistoryPaginated: (e) => _onLoadPaginated(e, emit),
+        loadMoreHistory: (_) => _onLoadMore(emit),
+        refreshHistory: (e) => _onRefresh(e, emit),
       );
     });
   }
 
+  // ── Legacy: load all (used by date-specific queries) ──
   Future<void> _onLoadHistory(
     _LoadHistory event, Emitter<TransactionState> emit,
   ) async {
@@ -43,6 +52,88 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     result.fold(
       (f) => emit(TransactionState.error(f.message)),
       (txs) => emit(TransactionState.historyLoaded(txs)),
+    );
+  }
+
+  // ── Paginated: first page ──
+  Future<void> _onLoadPaginated(
+    _LoadHistoryPaginated event, Emitter<TransactionState> emit,
+  ) async {
+    emit(const TransactionState.loading());
+    final result = await _getHistoryPaginated(
+      startDate: event.startDate,
+      endDate: event.endDate,
+      type: event.type,
+      warehouseLocation: event.warehouseLocation,
+      limit: _pageSize,
+    );
+    result.fold(
+      (f) => emit(TransactionState.error(f.message)),
+      (paginated) => emit(TransactionState.paginatedHistoryLoaded(
+        transactions: paginated.items,
+        hasMore: paginated.hasMore,
+        lastDocument: paginated.lastDocument,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        type: event.type,
+        warehouseLocation: event.warehouseLocation,
+      )),
+    );
+  }
+
+  // ── Paginated: load more ──
+  Future<void> _onLoadMore(Emitter<TransactionState> emit) async {
+    final current = state;
+    if (current is! _PaginatedHistoryLoaded || !current.hasMore || current.isLoadingMore) return;
+
+    emit(current.copyWith(isLoadingMore: true));
+
+    final result = await _getHistoryPaginated(
+      startDate: current.startDate,
+      endDate: current.endDate,
+      type: current.type,
+      warehouseLocation: current.warehouseLocation,
+      limit: _pageSize,
+      startAfter: current.lastDocument,
+    );
+
+    result.fold(
+      (f) => emit(current.copyWith(isLoadingMore: false, error: f.message)),
+      (paginated) => emit(TransactionState.paginatedHistoryLoaded(
+        transactions: [...current.transactions, ...paginated.items],
+        hasMore: paginated.hasMore,
+        lastDocument: paginated.lastDocument,
+        startDate: current.startDate,
+        endDate: current.endDate,
+        type: current.type,
+        warehouseLocation: current.warehouseLocation,
+        isLoadingMore: false,
+      )),
+    );
+  }
+
+  // ── Paginated: refresh ──
+  Future<void> _onRefresh(
+    _RefreshHistory event, Emitter<TransactionState> emit,
+  ) async {
+    final result = await _getHistoryPaginated(
+      startDate: event.startDate,
+      endDate: event.endDate,
+      type: event.type,
+      warehouseLocation: event.warehouseLocation,
+      limit: _pageSize,
+    );
+    result.fold(
+      (f) => emit(TransactionState.error(f.message)),
+      (paginated) => emit(TransactionState.paginatedHistoryLoaded(
+        transactions: paginated.items,
+        hasMore: paginated.hasMore,
+        lastDocument: paginated.lastDocument,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        type: event.type,
+        warehouseLocation: event.warehouseLocation,
+      )),
     );
   }
 

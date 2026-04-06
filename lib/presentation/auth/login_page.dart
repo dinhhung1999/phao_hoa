@@ -173,14 +173,19 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () =>
-                          setState(() => _isRegisterMode = !_isRegisterMode),
-                      child: Text(
-                        _isRegisterMode
-                            ? 'Đã có tài khoản? Đăng nhập'
-                            : 'Chưa có tài khoản? Đăng ký',
-                      ),
+                    // TextButton(
+                    //   onPressed: () =>
+                    //       setState(() => _isRegisterMode = !_isRegisterMode),
+                    //   child: Text(
+                    //     _isRegisterMode
+                    //         ? 'Đã có tài khoản? Đăng nhập'
+                    //         : 'Chưa có tài khoản? Đăng ký',
+                    //   ),
+                    // ),
+                    Text(
+                      _isRegisterMode
+                          ? 'Đã có tài khoản? Đăng nhập'
+                          : 'Chưa có tài khoản? Đăng ký',
                     ),
                   ],
                 ),

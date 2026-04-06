@@ -77,6 +77,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       child: CircularProgressIndicator.adaptive()),
                   historyLoaded: (loaded) =>
                       _buildCharts(loaded.transactions),
+                  paginatedHistoryLoaded: (loaded) =>
+                      _buildCharts(loaded.transactions),
                   created: (_) => const SizedBox(),
                   error: (e) => Center(child: Text(e.message)),
                 );

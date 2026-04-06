@@ -7,4 +7,13 @@ sealed class CategoryState with _$CategoryState {
   const factory CategoryState.loaded(List<Product> products) = _Loaded;
   const factory CategoryState.actionSuccess(String message) = _ActionSuccess;
   const factory CategoryState.error(String message) = _Error;
+
+  // Paginated state
+  const factory CategoryState.paginatedLoaded({
+    required List<Product> products,
+    required bool hasMore,
+    @Default(false) bool isLoadingMore,
+    dynamic lastDocument,
+    String? error,
+  }) = _PaginatedLoaded;
 }

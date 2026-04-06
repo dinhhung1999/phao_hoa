@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../core/enums/product_category.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/validators.dart';
 import '../../domain/entities/product.dart';
@@ -27,11 +26,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
   late final TextEditingController _exportPriceCtl;
   late final TextEditingController _unitCtl;
 
-  late ProductCategory _category;
-  String _regulationClass = 'A';
-
-  static const _classes = ['A', 'B', 'C'];
-
   @override
   void initState() {
     super.initState();
@@ -42,12 +36,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _exportPriceCtl =
         TextEditingController(text: p != null ? p.exportPrice.toInt().toString() : '');
     _unitCtl = TextEditingController(text: p?.unit ?? 'Hộp');
-    if (p != null) {
-      _category = ProductCategory.fromValue(p.category);
-      _regulationClass = p.regulationClass;
-    } else {
-      _category = ProductCategory.vien;
-    }
   }
 
   @override
@@ -73,8 +61,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
     final product = Product(
       id: widget.product?.id ?? '',
       name: _nameCtl.text.trim(),
-      category: _category.value,
-      regulationClass: _regulationClass,
       unit: _unitCtl.text.trim(),
       importPrice: double.tryParse(
             _importPriceCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
@@ -124,49 +110,14 @@ class _ProductFormPageState extends State<ProductFormPage> {
               ),
               const SizedBox(height: 16),
 
-              // Category dropdown
-              DropdownButtonFormField<ProductCategory>(
-                initialValue: _category,
+              // Unit
+              TextFormField(
+                controller: _unitCtl,
                 decoration: const InputDecoration(
-                  labelText: 'Danh mục',
-                  prefixIcon: Icon(Icons.category_outlined),
+                  labelText: 'Đơn vị',
+                  prefixIcon: Icon(Icons.straighten),
                 ),
-                items: ProductCategory.values.map((c) {
-                  return DropdownMenuItem(value: c, child: Text(c.displayName));
-                }).toList(),
-                onChanged: (v) => setState(() => _category = v ?? _category),
-              ),
-              const SizedBox(height: 16),
-
-              // Regulation class + Unit
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _regulationClass,
-                      decoration: const InputDecoration(
-                        labelText: 'Hạng (NĐ 137)',
-                        prefixIcon: Icon(Icons.shield_outlined),
-                      ),
-                      items: _classes.map((c) {
-                        return DropdownMenuItem(value: c, child: Text('Loại $c'));
-                      }).toList(),
-                      onChanged: (v) =>
-                          setState(() => _regulationClass = v ?? _regulationClass),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _unitCtl,
-                      decoration: const InputDecoration(
-                        labelText: 'Đơn vị',
-                        prefixIcon: Icon(Icons.straighten),
-                      ),
-                      textInputAction: TextInputAction.next,
-                    ),
-                  ),
-                ],
+                textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),
 

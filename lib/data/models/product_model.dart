@@ -10,8 +10,8 @@ abstract class ProductModel with _$ProductModel {
   const factory ProductModel({
     @Default('') String id,
     required String name,
-    required String category,
-    @JsonKey(name: 'regulation_class') required String regulationClass,
+    @Default('') String category,
+    @JsonKey(name: 'regulation_class') @Default('') String regulationClass,
     required String unit,
     @JsonKey(name: 'import_price') required double importPrice,
     @JsonKey(name: 'export_price') required double exportPrice,
@@ -32,5 +32,3 @@ abstract class ProductModel with _$ProductModel {
     return ProductModel.fromJson({...data, 'id': doc.id});
   }
 }
-
-

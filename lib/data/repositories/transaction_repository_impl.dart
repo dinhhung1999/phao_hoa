@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
+import '../../core/models/paginated_result.dart';
 import '../../domain/entities/transaction.dart' as entity;
 import '../../domain/entities/transaction_item.dart';
 import '../../domain/repositories/transaction_repository.dart';
@@ -11,6 +13,22 @@ class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionRemoteDatasource _datasource;
 
   TransactionRepositoryImpl(this._datasource);
+
+  String _friendlyError(Object e) {
+    if (e is FirebaseException) {
+      switch (e.code) {
+        case 'unavailable':
+          return 'Mất kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.';
+        case 'permission-denied':
+          return 'Không có quyền thực hiện thao tác này. Vui lòng liên hệ quản trị.';
+        case 'timeout':
+          return 'Kết nối quá thời gian. Vui lòng thử lại.';
+        default:
+          return 'Lỗi: ${e.message ?? e.code}';
+      }
+    }
+    return e.toString();
+  }
 
   @override
   Future<Either<Failure, String>> createExportOrder({
@@ -26,7 +44,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       );
       return Right(id);
     } catch (e) {
-      return Left(FirestoreFailure(e.toString()));
+      return Left(FirestoreFailure(_friendlyError(e)));
     }
   }
 
@@ -44,7 +62,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       );
       return Right(id);
     } catch (e) {
-      return Left(FirestoreFailure(e.toString()));
+      return Left(FirestoreFailure(_friendlyError(e)));
     }
   }
 
@@ -97,6 +115,34 @@ class TransactionRepositoryImpl implements TransactionRepository {
       return Right(tx);
     } catch (e) {
       return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, PaginatedResult<entity.Transaction>>> getTransactionHistoryPaginated({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+    int limit = 20,
+    dynamic startAfter,
+  }) async {
+    try {
+      final (models, lastDoc) = await _datasource.getTransactionHistoryPaginated(
+        startDate: startDate,
+        endDate: endDate,
+        type: type,
+        warehouseLocation: warehouseLocation,
+        limit: limit,
+        startAfter: startAfter as DocumentSnapshot?,
+      );
+      return Right(PaginatedResult(
+        items: models.map(_txToEntity).toList(),
+        lastDocument: lastDoc,
+        hasMore: models.length >= limit,
+      ));
+    } catch (e) {
+      return Left(FirestoreFailure(_friendlyError(e)));
     }
   }
 

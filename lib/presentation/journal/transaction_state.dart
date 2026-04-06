@@ -9,4 +9,18 @@ sealed class TransactionState with _$TransactionState {
   ) = _HistoryLoaded;
   const factory TransactionState.created(String transactionId) = _Created;
   const factory TransactionState.error(String message) = _Error;
+
+  // Paginated state
+  const factory TransactionState.paginatedHistoryLoaded({
+    required List<entity.Transaction> transactions,
+    required bool hasMore,
+    @Default(false) bool isLoadingMore,
+    dynamic lastDocument,
+    // Preserve current filter params
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+    String? error,
+  }) = _PaginatedHistoryLoaded;
 }

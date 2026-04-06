@@ -85,6 +85,7 @@ Future<void> initDependencies() async {
 
   // ── Use Cases: Product ──
   sl.registerLazySingleton(() => GetAllProducts(sl()));
+  sl.registerLazySingleton(() => GetProductsPaginated(sl()));
   sl.registerLazySingleton(() => AddProduct(sl()));
   sl.registerLazySingleton(() => UpdateProduct(sl()));
   sl.registerLazySingleton(() => DeleteProduct(sl()));
@@ -93,10 +94,12 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => CreateExportOrder(sl(), sl()));
   sl.registerLazySingleton(() => CreateImportOrder(sl()));
   sl.registerLazySingleton(() => GetTransactionHistory(sl()));
+  sl.registerLazySingleton(() => GetTransactionHistoryPaginated(sl()));
   sl.registerLazySingleton(() => GetTransactionsByDate(sl()));
 
   // ── Use Cases: Customer ──
   sl.registerLazySingleton(() => GetAllCustomers(sl()));
+  sl.registerLazySingleton(() => GetCustomersPaginated(sl()));
   sl.registerLazySingleton(() => AddCustomer(sl()));
   sl.registerLazySingleton(() => UpdateCustomer(sl()));
   sl.registerLazySingleton(() => DeleteCustomer(sl()));
@@ -131,6 +134,7 @@ Future<void> initDependencies() async {
 
   sl.registerFactory(() => CategoryBloc(
     getAllProducts: sl(),
+    getProductsPaginated: sl(),
     addProduct: sl(),
     updateProduct: sl(),
     deleteProduct: sl(),
@@ -138,12 +142,14 @@ Future<void> initDependencies() async {
 
   sl.registerFactory(() => TransactionBloc(
     getHistory: sl(),
+    getHistoryPaginated: sl(),
     createExport: sl(),
     createImport: sl(),
   ));
 
   sl.registerFactory(() => CustomerBloc(
     getAllCustomers: sl(),
+    getCustomersPaginated: sl(),
     addCustomer: sl(),
     updateCustomer: sl(),
     deleteCustomer: sl(),

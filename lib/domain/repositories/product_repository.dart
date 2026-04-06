@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
+import '../../core/models/paginated_result.dart';
 import '../entities/product.dart';
 
 /// Product repository contract
@@ -21,4 +22,10 @@ abstract class ProductRepository {
 
   /// Soft-delete a product (set isActive = false)
   Future<Either<Failure, void>> deleteProduct(String id);
+
+  /// Get products with pagination
+  Future<Either<Failure, PaginatedResult<Product>>> getProductsPaginated({
+    int limit = 20,
+    dynamic startAfter,
+  });
 }

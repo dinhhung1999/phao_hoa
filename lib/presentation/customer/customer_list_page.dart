@@ -11,7 +11,7 @@ import '../auth/auth_bloc.dart';
 import 'customer_bloc.dart';
 import 'customer_debt_page.dart';
 
-/// Customer list page — accessed from journal appbar
+/// Customer list page — with pagination + pull-to-refresh
 class CustomerListPage extends StatefulWidget {
   final bool showAppBar;
 
@@ -22,12 +22,35 @@ class CustomerListPage extends StatefulWidget {
 }
 
 class _CustomerListPageState extends State<CustomerListPage> {
+  final ScrollController _scrollCtl = ScrollController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    context.read<CustomerBloc>().add(const CustomerEvent.loadCustomers());
+    context.read<CustomerBloc>().add(const CustomerEvent.loadCustomersPaginated());
+    _scrollCtl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtl
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<CustomerBloc>().add(const CustomerEvent.loadMoreCustomers());
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollCtl.hasClients) return false;
+    final maxScroll = _scrollCtl.position.maxScrollExtent;
+    final currentScroll = _scrollCtl.offset;
+    return currentScroll >= (maxScroll - 200);
   }
 
   @override
@@ -58,14 +81,17 @@ class _CustomerListPageState extends State<CustomerListPage> {
           return state.map(
             initial: (_) => const AppLoadingIndicator(),
             loading: (_) => const AppLoadingIndicator(),
-            customersLoaded: (loaded) => _buildSearchableList(loaded.customers),
+            customersLoaded: (loaded) => _buildSearchableList(loaded.customers, false, false),
+            paginatedLoaded: (loaded) => _buildSearchableList(
+              loaded.customers, loaded.hasMore, loaded.isLoadingMore,
+            ),
             debtsLoaded: (_) => const AppLoadingIndicator(),
             actionSuccess: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
               onRetry: () => context
                   .read<CustomerBloc>()
-                  .add(const CustomerEvent.loadCustomers()),
+                  .add(const CustomerEvent.loadCustomersPaginated()),
             ),
           );
         },
@@ -73,7 +99,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
-  Widget _buildSearchableList(List<Customer> customers) {
+  Widget _buildSearchableList(
+    List<Customer> customers, bool hasMore, bool isLoadingMore,
+  ) {
     final filtered = _searchQuery.isEmpty
         ? customers
         : customers.where((c) {
@@ -109,21 +137,31 @@ class _CustomerListPageState extends State<CustomerListPage> {
             onChanged: (v) => setState(() => _searchQuery = v),
           ),
         ),
-        Expanded(child: _buildList(filtered)),
+        Expanded(child: _buildList(filtered, hasMore, isLoadingMore)),
       ],
     );
   }
 
-  Widget _buildList(List<Customer> customers) {
+  Widget _buildList(List<Customer> customers, bool hasMore, bool isLoadingMore) {
     if (customers.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.people_outline, size: 64, color: AppColors.textHint),
-            SizedBox(height: 12),
-            Text('Chưa có khách hàng',
-                style: TextStyle(color: AppColors.textSecondary)),
+      return RefreshIndicator(
+        onRefresh: () async {
+          context.read<CustomerBloc>().add(const CustomerEvent.refreshCustomers());
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: AppColors.textHint),
+                  SizedBox(height: 12),
+                  Text('Chưa có khách hàng',
+                      style: TextStyle(color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -131,13 +169,22 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<CustomerBloc>().add(const CustomerEvent.loadCustomers());
+        context.read<CustomerBloc>().add(const CustomerEvent.refreshCustomers());
       },
       child: ListView.separated(
+        controller: _scrollCtl,
         padding: const EdgeInsets.all(16),
-        itemCount: customers.length,
+        itemCount: customers.length + (hasMore ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
+          if (index >= customers.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: CircularProgressIndicator.adaptive(),
+              ),
+            );
+          }
           final customer = customers[index];
           return Card(
             child: ListTile(
@@ -460,6 +507,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
       ),
     );
   }
+
   void _showEditCustomerDialog(BuildContext context, Customer customer) {
     final nameCtl = TextEditingController(text: customer.name);
     final phoneCtl = TextEditingController(text: customer.phone ?? '');

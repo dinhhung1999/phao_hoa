@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
+import '../../core/models/paginated_result.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../datasources/product_remote_datasource.dart';
@@ -63,6 +65,26 @@ class ProductRepositoryImpl implements ProductRepository {
     try {
       await _datasource.deleteProduct(id);
       return const Right(null);
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, PaginatedResult<Product>>> getProductsPaginated({
+    int limit = 20,
+    dynamic startAfter,
+  }) async {
+    try {
+      final (models, lastDoc) = await _datasource.getProductsPaginated(
+        limit: limit,
+        startAfter: startAfter as DocumentSnapshot?,
+      );
+      return Right(PaginatedResult(
+        items: models.map(_toEntity).toList(),
+        lastDocument: lastDoc,
+        hasMore: models.length >= limit,
+      ));
     } catch (e) {
       return Left(FirestoreFailure(e.toString()));
     }

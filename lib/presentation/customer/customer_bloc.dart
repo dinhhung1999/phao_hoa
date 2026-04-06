@@ -10,6 +10,7 @@ part 'customer_bloc.freezed.dart';
 
 class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
   final GetAllCustomers _getAllCustomers;
+  final GetCustomersPaginated _getCustomersPaginated;
   final AddCustomer _addCustomer;
   final UpdateCustomer _updateCustomer;
   final DeleteCustomer _deleteCustomer;
@@ -17,8 +18,11 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
   final MakePartialPayment _makePayment;
   final SettleAllDebts _settleAll;
 
+  static const int _pageSize = 20;
+
   CustomerBloc({
     required GetAllCustomers getAllCustomers,
+    required GetCustomersPaginated getCustomersPaginated,
     required AddCustomer addCustomer,
     required UpdateCustomer updateCustomer,
     required DeleteCustomer deleteCustomer,
@@ -26,6 +30,7 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
     required MakePartialPayment makePayment,
     required SettleAllDebts settleAll,
   })  : _getAllCustomers = getAllCustomers,
+        _getCustomersPaginated = getCustomersPaginated,
         _addCustomer = addCustomer,
         _updateCustomer = updateCustomer,
         _deleteCustomer = deleteCustomer,
@@ -42,16 +47,70 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
         loadDebts: (e) => _onLoadDebts(e, emit),
         makePayment: (e) => _onMakePayment(e, emit),
         settleAll: (e) => _onSettleAll(e, emit),
+        loadCustomersPaginated: (_) => _onLoadPaginated(emit),
+        loadMoreCustomers: (_) => _onLoadMore(emit),
+        refreshCustomers: (_) => _onRefresh(emit),
       );
     });
   }
 
+  // ── Legacy: load all (used by export customer picker) ──
   Future<void> _onLoadCustomers(Emitter<CustomerState> emit) async {
     emit(const CustomerState.loading());
     final result = await _getAllCustomers();
     result.fold(
       (f) => emit(CustomerState.error(f.message)),
       (customers) => emit(CustomerState.customersLoaded(customers)),
+    );
+  }
+
+  // ── Paginated: first page ──
+  Future<void> _onLoadPaginated(Emitter<CustomerState> emit) async {
+    emit(const CustomerState.loading());
+    final result = await _getCustomersPaginated(limit: _pageSize);
+    result.fold(
+      (f) => emit(CustomerState.error(f.message)),
+      (paginated) => emit(CustomerState.paginatedLoaded(
+        customers: paginated.items,
+        hasMore: paginated.hasMore,
+        lastDocument: paginated.lastDocument,
+      )),
+    );
+  }
+
+  // ── Paginated: load more ──
+  Future<void> _onLoadMore(Emitter<CustomerState> emit) async {
+    final current = state;
+    if (current is! _PaginatedLoaded || !current.hasMore || current.isLoadingMore) return;
+
+    emit(current.copyWith(isLoadingMore: true));
+
+    final result = await _getCustomersPaginated(
+      limit: _pageSize,
+      startAfter: current.lastDocument,
+    );
+
+    result.fold(
+      (f) => emit(current.copyWith(isLoadingMore: false, error: f.message)),
+      (paginated) => emit(CustomerState.paginatedLoaded(
+        customers: [...current.customers, ...paginated.items],
+        hasMore: paginated.hasMore,
+        lastDocument: paginated.lastDocument,
+        isLoadingMore: false,
+      )),
+    );
+  }
+
+  // ── Paginated: refresh ──
+  Future<void> _onRefresh(Emitter<CustomerState> emit) async {
+    final result = await _getCustomersPaginated(limit: _pageSize);
+    result.fold(
+      (f) => emit(CustomerState.error(f.message)),
+      (paginated) => emit(CustomerState.paginatedLoaded(
+        customers: paginated.items,
+        hasMore: paginated.hasMore,
+        lastDocument: paginated.lastDocument,
+      )),
     );
   }
 
@@ -64,7 +123,7 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
       (f) => emit(CustomerState.error(f.message)),
       (_) {
         emit(const CustomerState.actionSuccess('Đã thêm khách hàng'));
-        add(const CustomerEvent.loadCustomers());
+        add(const CustomerEvent.loadCustomersPaginated());
       },
     );
   }
@@ -78,7 +137,7 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
       (f) => emit(CustomerState.error(f.message)),
       (_) {
         emit(const CustomerState.actionSuccess('Đã cập nhật khách hàng'));
-        add(const CustomerEvent.loadCustomers());
+        add(const CustomerEvent.loadCustomersPaginated());
       },
     );
   }
@@ -92,7 +151,7 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
       (f) => emit(CustomerState.error(f.message)),
       (_) {
         emit(const CustomerState.actionSuccess('Đã xóa khách hàng'));
-        add(const CustomerEvent.loadCustomers());
+        add(const CustomerEvent.loadCustomersPaginated());
       },
     );
   }
