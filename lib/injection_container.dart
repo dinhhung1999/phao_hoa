@@ -100,7 +100,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => DeleteProduct(sl()));
 
   // ── Use Cases: Transaction ──
-  sl.registerLazySingleton(() => CreateExportOrder(sl(), sl()));
+  sl.registerLazySingleton(() => CreateExportOrder(sl()));
   sl.registerLazySingleton(() => CreateImportOrder(sl()));
   sl.registerLazySingleton(() => GetTransactionHistory(sl()));
   sl.registerLazySingleton(() => GetTransactionHistoryPaginated(sl()));

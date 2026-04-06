@@ -4,32 +4,20 @@ import '../../../core/models/paginated_result.dart';
 import '../../entities/transaction.dart';
 import '../../entities/transaction_item.dart';
 import '../../repositories/transaction_repository.dart';
-import '../../repositories/checklist_repository.dart';
 
-/// Create export order — checks PCCC checklist first
+/// Create export order
 class CreateExportOrder {
-  final TransactionRepository _transactionRepo;
-  final ChecklistRepository _checklistRepo;
+  final TransactionRepository _repository;
 
-  CreateExportOrder(this._transactionRepo, this._checklistRepo);
+  CreateExportOrder(this._repository);
 
   Future<Either<Failure, String>> call({
     required Transaction transaction,
     required List<TransactionItem> items,
-  }) async {
-    // Verify PCCC checklist completed today
-    final checklistResult = await _checklistRepo.isTodayChecklistCompleted();
-    return checklistResult.fold(
-      (failure) => Left(failure),
-      (isCompleted) {
-        if (!isCompleted) {
-          return const Left(ChecklistNotCompletedFailure());
-        }
-        return _transactionRepo.createExportOrder(
-          transaction: transaction,
-          items: items,
-        );
-      },
+  }) {
+    return _repository.createExportOrder(
+      transaction: transaction,
+      items: items,
     );
   }
 }

@@ -50,6 +50,7 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
         loadCustomersPaginated: (_) => _onLoadPaginated(emit),
         loadMoreCustomers: (_) => _onLoadMore(emit),
         refreshCustomers: (_) => _onRefresh(emit),
+        addMultipleCustomers: (e) => _onAddMultipleCustomers(e, emit),
       );
     });
   }
@@ -194,5 +195,32 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
       (f) => emit(CustomerState.error(f.message)),
       (_) => emit(const CustomerState.actionSuccess('Đã tất toán công nợ')),
     );
+  }
+
+  Future<void> _onAddMultipleCustomers(
+    _AddMultipleCustomers event, Emitter<CustomerState> emit,
+  ) async {
+    emit(const CustomerState.loading());
+    int successCount = 0;
+    int failCount = 0;
+
+    for (final customer in event.customers) {
+      final result = await _addCustomer(customer);
+      result.fold(
+        (_) => failCount++,
+        (_) => successCount++,
+      );
+    }
+
+    if (failCount == 0) {
+      emit(CustomerState.actionSuccess(
+        'Đã thêm $successCount khách hàng từ danh bạ',
+      ));
+    } else {
+      emit(CustomerState.actionSuccess(
+        'Đã thêm $successCount, thất bại $failCount khách hàng',
+      ));
+    }
+    add(const CustomerEvent.loadCustomersPaginated());
   }
 }

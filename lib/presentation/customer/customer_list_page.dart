@@ -8,6 +8,7 @@ import '../../core/widgets/error_widget.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../domain/entities/customer.dart';
 import '../auth/auth_bloc.dart';
+import 'contact_picker_page.dart';
 import 'customer_bloc.dart';
 import 'customer_debt_page.dart';
 
@@ -61,7 +62,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
           : null,
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_customer',
-        onPressed: () => _showAddCustomerDialog(context),
+        onPressed: () => _showAddOptions(context),
         child: const Icon(Icons.person_add),
       ),
       body: BlocConsumer<CustomerBloc, CustomerState>(
@@ -417,6 +418,76 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
+  void _showAddOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Thêm khách hàng',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  child: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                ),
+                title: const Text('Nhập tay',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Tự nhập tên, SĐT và loại khách hàng'),
+                trailing: const Icon(Icons.chevron_right),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showAddCustomerDialog(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.info.withValues(alpha: 0.1),
+                  child: const Icon(Icons.contacts_outlined, color: AppColors.info),
+                ),
+                title: const Text('Thêm từ danh bạ',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Chọn một hoặc nhiều liên hệ từ điện thoại'),
+                trailing: const Icon(Icons.chevron_right),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _importFromContacts(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showAddCustomerDialog(BuildContext context) {
     final nameCtl = TextEditingController();
     final phoneCtl = TextEditingController();
@@ -682,5 +753,68 @@ class _CustomerListPageState extends State<CustomerListPage> {
             CustomerEvent.settleAll(customer.id),
           );
     }
+  }
+
+  /// Collect existing phone numbers and navigate to contact picker
+  Future<void> _importFromContacts(BuildContext context) async {
+    // Collect existing phone numbers from current state for duplicate detection
+    final state = context.read<CustomerBloc>().state;
+    final Set<String> existingPhones = {};
+
+    state.mapOrNull(
+      paginatedLoaded: (loaded) {
+        for (final c in loaded.customers) {
+          if (c.phone != null && c.phone!.isNotEmpty) {
+            existingPhones.add(_normalizePhoneForCompare(c.phone!));
+          }
+        }
+      },
+      customersLoaded: (loaded) {
+        for (final c in loaded.customers) {
+          if (c.phone != null && c.phone!.isNotEmpty) {
+            existingPhones.add(_normalizePhoneForCompare(c.phone!));
+          }
+        }
+      },
+    );
+
+    if (!context.mounted) return;
+
+    final result = await Navigator.of(context).push<List<Customer>>(
+      MaterialPageRoute(
+        builder: (_) => ContactPickerPage(existingPhones: existingPhones),
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && context.mounted) {
+      // Inject updatedBy from auth
+      String? userEmail;
+      context.read<AuthBloc>().state.mapOrNull(
+        authenticated: (auth) => userEmail = auth.user.email,
+      );
+
+      final customersWithAudit = result.map((c) => Customer(
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        type: c.type,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        updatedBy: userEmail,
+      )).toList();
+
+      context.read<CustomerBloc>().add(
+        CustomerEvent.addMultipleCustomers(customersWithAudit),
+      );
+    }
+  }
+
+  /// Normalize phone for comparison
+  String _normalizePhoneForCompare(String phone) {
+    String normalized = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (normalized.startsWith('+84')) {
+      normalized = '0${normalized.substring(3)}';
+    }
+    return normalized;
   }
 }

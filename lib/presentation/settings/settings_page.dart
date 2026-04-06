@@ -121,8 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
           '• Sản phẩm\n'
           '• Tồn kho\n'
           '• Giao dịch nhập/xuất\n'
-          '• Khách hàng & công nợ\n'
-          '• Checklist PCCC\n\n'
+          '• Khách hàng & công nợ\n\n'
           'Dữ liệu không thể khôi phục!',
       confirmText: 'Tiếp tục',
       confirmColor: AppColors.error,

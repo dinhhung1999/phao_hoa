@@ -21,4 +21,7 @@ sealed class CustomerEvent with _$CustomerEvent {
   const factory CustomerEvent.loadCustomersPaginated() = _LoadCustomersPaginated;
   const factory CustomerEvent.loadMoreCustomers() = _LoadMoreCustomers;
   const factory CustomerEvent.refreshCustomers() = _RefreshCustomers;
+
+  // Batch import from contacts
+  const factory CustomerEvent.addMultipleCustomers(List<Customer> customers) = _AddMultipleCustomers;
 }

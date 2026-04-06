@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSContactsUsageDescription</key>
+	<string>Ứng dụng cần truy cập danh bạ để thêm khách hàng nhanh hơn</string>
 </dict>
 </plist>
