@@ -19,8 +19,9 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+    with TickerProviderStateMixin {
+  TabController? _tabController;
+  int _lastTabCount = 0;
   String _searchQuery = '';
 
   // Location keys from central constants
@@ -30,19 +31,19 @@ class _DashboardPageState extends State<DashboardPage>
   static const int _criticalThreshold = 5;
   static const int _lowThreshold = 20;
 
-  @override
-  void initState() {
-    super.initState();
-    // Tabs: Tất cả + each warehouse
-    _tabController = TabController(
-      length: 1 + AppConstants.warehouseLocationNames.length,
-      vsync: this,
-    );
+  /// Ensure TabController matches current warehouse count
+  void _ensureTabController() {
+    final tabCount = 1 + AppConstants.warehouseLocationNames.length;
+    if (_tabController == null || _lastTabCount != tabCount) {
+      _tabController?.dispose();
+      _tabController = TabController(length: tabCount, vsync: this);
+      _lastTabCount = tabCount;
+    }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -137,6 +138,7 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   Widget _buildBody(List<WarehouseStock> stocks, double totalValue) {
+    _ensureTabController();
     final lowCount = _getLowStockCount(stocks);
     final outOfStockCount = _getOutOfStockCount(stocks);
 
@@ -219,7 +221,7 @@ class _DashboardPageState extends State<DashboardPage>
 
           // ── Warehouse Tabs ──
           TabBar(
-            controller: _tabController,
+            controller: _tabController!,
             onTap: (_) => setState(() {}),
             isScrollable: true,
             tabAlignment: TabAlignment.start,
@@ -249,7 +251,7 @@ class _DashboardPageState extends State<DashboardPage>
             child: Builder(
               builder: (context) {
                 final filtered =
-                    _filterStocks(stocks, _tabController.index);
+                    _filterStocks(stocks, _tabController!.index);
                 if (filtered.isEmpty) {
                   return Center(
                     child: Column(
@@ -278,9 +280,9 @@ class _DashboardPageState extends State<DashboardPage>
                     final stock = filtered[index];
                     return _StockCard(
                       stock: stock,
-                      tabIndex: _tabController.index,
+                      tabIndex: _tabController!.index,
                       displayQuantity: _getDisplayQuantity(
-                          stock, _tabController.index),
+                          stock, _tabController!.index),
                       criticalThreshold: _criticalThreshold,
                       lowThreshold: _lowThreshold,
                       onTap: () {

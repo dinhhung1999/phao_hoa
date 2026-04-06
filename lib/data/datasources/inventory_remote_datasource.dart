@@ -119,4 +119,54 @@ class InventoryRemoteDatasource {
 
     return totalValue;
   }
+
+  /// Migrate corrupted flat 'stock_by_location.xxx' fields into proper nested map.
+  /// This fixes data created by the old dot-notation bug in batch.set()+merge:true.
+  /// Safe to call multiple times (idempotent).
+  Future<void> migrateCorruptedStockFields() async {
+    final snapshot = await _invCollection.get();
+    int migratedCount = 0;
+    final batch = _firestore.batch();
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final existingStock = data['stock_by_location'] as Map<String, dynamic>? ?? {};
+      final flatFields = <String, int>{};
+
+      // Find flat fields like 'stock_by_location.kho_1' at root level
+      for (final key in data.keys) {
+        if (key.startsWith('stock_by_location.') && key.length > 'stock_by_location.'.length) {
+          final locationKey = key.substring('stock_by_location.'.length);
+          if (data[key] is num) {
+            flatFields[locationKey] = (data[key] as num).toInt();
+          }
+        }
+      }
+
+      if (flatFields.isNotEmpty) {
+        // Merge flat fields into the nested map
+        final mergedStock = <String, dynamic>{...existingStock};
+        for (final entry in flatFields.entries) {
+          mergedStock[entry.key] = entry.value;
+        }
+
+        // Build update: set proper nested map + delete flat fields
+        final updates = <String, dynamic>{
+          'stock_by_location': mergedStock,
+        };
+        for (final key in data.keys) {
+          if (key.startsWith('stock_by_location.') && key.length > 'stock_by_location.'.length) {
+            updates[key] = FieldValue.delete();
+          }
+        }
+
+        batch.update(doc.reference, updates);
+        migratedCount++;
+      }
+    }
+
+    if (migratedCount > 0) {
+      await batch.commit();
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../core/constants/app_constants.dart';
 import '../../domain/entities/warehouse.dart';
 import '../../domain/usecases/warehouse/warehouse_usecases.dart';
 
@@ -47,13 +48,16 @@ class WarehouseBloc extends Bloc<WarehouseEvent, WarehouseState> {
   ) async {
     emit(const WarehouseState.loading());
     final result = await _addWarehouse(event.warehouse);
-    result.fold(
-      (f) => emit(WarehouseState.error(f.message)),
-      (_) {
-        emit(const WarehouseState.actionSuccess('Đã thêm kho hàng'));
-        add(const WarehouseEvent.loadWarehouses());
-      },
-    );
+    if (result.isLeft()) {
+      result.fold(
+        (f) => emit(WarehouseState.error(f.message)),
+        (_) {},
+      );
+      return;
+    }
+    await AppConstants.loadWarehouseNames();
+    emit(const WarehouseState.actionSuccess('Đã thêm kho hàng'));
+    add(const WarehouseEvent.loadWarehouses());
   }
 
   Future<void> _onUpdate(
@@ -61,13 +65,16 @@ class WarehouseBloc extends Bloc<WarehouseEvent, WarehouseState> {
   ) async {
     emit(const WarehouseState.loading());
     final result = await _updateWarehouse(event.warehouse);
-    result.fold(
-      (f) => emit(WarehouseState.error(f.message)),
-      (_) {
-        emit(const WarehouseState.actionSuccess('Đã cập nhật kho hàng'));
-        add(const WarehouseEvent.loadWarehouses());
-      },
-    );
+    if (result.isLeft()) {
+      result.fold(
+        (f) => emit(WarehouseState.error(f.message)),
+        (_) {},
+      );
+      return;
+    }
+    await AppConstants.loadWarehouseNames();
+    emit(const WarehouseState.actionSuccess('Đã cập nhật kho hàng'));
+    add(const WarehouseEvent.loadWarehouses());
   }
 
   Future<void> _onDelete(
@@ -75,12 +82,15 @@ class WarehouseBloc extends Bloc<WarehouseEvent, WarehouseState> {
   ) async {
     emit(const WarehouseState.loading());
     final result = await _deleteWarehouse(event.id);
-    result.fold(
-      (f) => emit(WarehouseState.error(f.message)),
-      (_) {
-        emit(const WarehouseState.actionSuccess('Đã xóa kho hàng'));
-        add(const WarehouseEvent.loadWarehouses());
-      },
-    );
+    if (result.isLeft()) {
+      result.fold(
+        (f) => emit(WarehouseState.error(f.message)),
+        (_) {},
+      );
+      return;
+    }
+    await AppConstants.loadWarehouseNames();
+    emit(const WarehouseState.actionSuccess('Đã xóa kho hàng'));
+    add(const WarehouseEvent.loadWarehouses());
   }
 }

@@ -77,7 +77,7 @@ class TransactionRemoteDatasource {
     }
 
     // 3. Update inventory (decrease stock at location)
-    // Use set+merge to handle case where doc or field doesn't exist yet
+    // Use nested map (NOT dot notation) with set+merge to correctly update nested fields
     for (final item in items) {
       final invRef = _invCollection.doc(item.productId);
       batch.set(
@@ -85,8 +85,9 @@ class TransactionRemoteDatasource {
         {
           'product_id': item.productId,
           'product_name': item.productName,
-          'stock_by_location.$locationKey':
-              FieldValue.increment(-item.quantity),
+          'stock_by_location': {
+            locationKey: FieldValue.increment(-item.quantity),
+          },
           'total_quantity': FieldValue.increment(-item.quantity),
           'last_updated': FieldValue.serverTimestamp(),
         },
@@ -143,7 +144,7 @@ class TransactionRemoteDatasource {
     }
 
     // 3. Update inventory (increase stock at location)
-    // Use dot notation for nested field to work correctly with FieldValue.increment
+    // Use nested map (NOT dot notation) with set+merge to correctly update nested fields
     for (final item in items) {
       final invRef = _invCollection.doc(item.productId);
       batch.set(
@@ -151,7 +152,9 @@ class TransactionRemoteDatasource {
         {
           'product_id': item.productId,
           'product_name': item.productName,
-          'stock_by_location.$locationKey': FieldValue.increment(item.quantity),
+          'stock_by_location': {
+            locationKey: FieldValue.increment(item.quantity),
+          },
           'total_quantity': FieldValue.increment(item.quantity),
           'last_updated': FieldValue.serverTimestamp(),
         },

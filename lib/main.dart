@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/constants/app_constants.dart';
 import 'core/services/notification_service.dart';
+import 'data/datasources/inventory_remote_datasource.dart';
 import 'data/datasources/warehouse_remote_datasource.dart';
 import 'firebase_options.dart';
 import 'injection_container.dart';
@@ -45,6 +46,14 @@ void main() async {
 
   // Load warehouse keys/names into AppConstants for backward-compatible UI usage
   await AppConstants.loadWarehouseNames();
+
+  // One-time migration: fix corrupted flat 'stock_by_location.xxx' fields
+  // created by the old dot-notation bug in batch.set()+merge:true
+  try {
+    await sl<InventoryRemoteDatasource>().migrateCorruptedStockFields();
+  } catch (_) {
+    // Non-critical — app works with read-side recovery in fromFirestore
+  }
 
   runApp(const PhaoHoaApp());
 }
