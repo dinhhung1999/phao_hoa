@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/services/data_reset_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/confirm_dialog.dart';
+import '../../injection_container.dart';
 import '../auth/auth_bloc.dart';
+import '../warehouse/warehouse_bloc.dart';
+import '../warehouse/warehouse_list_page.dart';
 
 /// Settings page — accessed from home page app bar
 class SettingsPage extends StatefulWidget {
@@ -22,30 +24,18 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _reminderEnabled = true;
   bool _isResetting = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
   static const _prefKeyHour = 'reminder_hour';
   static const _prefKeyMinute = 'reminder_minute';
   static const _prefKeyEnabled = 'reminder_enabled';
 
-  // Warehouse name controllers
-  late List<TextEditingController> _warehouseCtls;
-
-  @override
-  void initState() {
-    super.initState();
-    _warehouseCtls = List.generate(
-      AppConstants.warehouseLocationKeys.length,
-      (i) => TextEditingController(
-        text: AppConstants.warehouseLocationNames[i],
-      ),
-    );
-    _loadSettings();
-  }
-
   @override
   void dispose() {
-    for (final ctl in _warehouseCtls) {
-      ctl.dispose();
-    }
     super.dispose();
   }
 
@@ -56,12 +46,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _reminderMinute = prefs.getInt(_prefKeyMinute) ?? 0;
       _reminderEnabled = prefs.getBool(_prefKeyEnabled) ?? true;
     });
-
-    // Warehouse names are already loaded in AppConstants from Firestore
-    // Just sync controllers with current values
-    for (int i = 0; i < AppConstants.warehouseLocationKeys.length; i++) {
-      _warehouseCtls[i].text = AppConstants.warehouseLocationNames[i];
-    }
   }
 
   Future<void> _saveSettings() async {
@@ -90,39 +74,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _saveWarehouseNames() async {
-    final names = _warehouseCtls.map((c) => c.text.trim()).toList();
-    // Validate all names are non-empty
-    if (names.any((n) => n.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tên kho không được để trống'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-    try {
-      await AppConstants.saveWarehouseNames(names);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã lưu tên kho'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
+
 
   Future<void> _pickTime() async {
     final time = await showTimePicker(
@@ -385,52 +337,31 @@ class _SettingsPageState extends State<SettingsPage> {
 
             const SizedBox(height: 24),
 
-            // ── Warehouse Names Section ──
-            Text('Tên kho hàng',
+            // ── Warehouse Management Section ──
+            Text('Kho hàng',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     )),
             const SizedBox(height: 8),
             Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Đặt tên hiển thị cho từng kho hàng',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...List.generate(
-                      AppConstants.warehouseLocationKeys.length,
-                      (i) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: TextFormField(
-                          controller: _warehouseCtls[i],
-                          decoration: InputDecoration(
-                            labelText:
-                                'Vị trí ${AppConstants.warehouseLocationKeys[i]}',
-                            prefixIcon: const Icon(Icons.warehouse_outlined),
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _saveWarehouseNames,
-                        icon: const Icon(Icons.save, size: 18),
-                        label: const Text('Lưu tên kho'),
-                      ),
-                    ),
-                  ],
+              child: ListTile(
+                leading: const Icon(Icons.warehouse_outlined),
+                title: const Text('Quản lý kho hàng'),
+                subtitle: const Text(
+                  'Thêm, sửa, xóa kho hàng và thông tin chi tiết',
+                  style: TextStyle(fontSize: 12),
                 ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) => sl<WarehouseBloc>(),
+                        child: const WarehouseListPage(),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 

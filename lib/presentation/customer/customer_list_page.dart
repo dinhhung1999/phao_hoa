@@ -580,6 +580,13 @@ class _CustomerListPageState extends State<CustomerListPage> {
                   isActive: customer.isActive,
                   createdAt: customer.createdAt,
                   updatedAt: DateTime.now(),
+                  updatedBy: () {
+                    String? email;
+                    context.read<AuthBloc>().state.mapOrNull(
+                      authenticated: (auth) => email = auth.user.email,
+                    );
+                    return email;
+                  }(),
                 );
                 context
                     .read<CustomerBloc>()
@@ -660,9 +667,20 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
-  void _handleSettleAll(BuildContext context, Customer customer) {
-    context.read<CustomerBloc>().add(
-          CustomerEvent.settleAll(customer.id),
-        );
+  Future<void> _handleSettleAll(BuildContext context, Customer customer) async {
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: 'Tất toán công nợ',
+      message:
+          'Bạn có chắc muốn tất toán toàn bộ công nợ của "${customer.name}"?\n\n'
+          'Số tiền: ${CurrencyFormatter.format(customer.totalDebt)}',
+      confirmText: 'Tất toán',
+      confirmColor: AppColors.success,
+    );
+    if (confirmed && context.mounted) {
+      context.read<CustomerBloc>().add(
+            CustomerEvent.settleAll(customer.id),
+          );
+    }
   }
 }

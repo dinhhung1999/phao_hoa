@@ -182,11 +182,6 @@ class _LoginPageState extends State<LoginPage> {
                     //         : 'Chưa có tài khoản? Đăng ký',
                     //   ),
                     // ),
-                    Text(
-                      _isRegisterMode
-                          ? 'Đã có tài khoản? Đăng nhập'
-                          : 'Chưa có tài khoản? Đăng ký',
-                    ),
                   ],
                 ),
               ),

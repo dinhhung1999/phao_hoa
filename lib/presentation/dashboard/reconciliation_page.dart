@@ -78,19 +78,26 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
     }
 
     // Determine which locations to show based on filter
-    final locationsToShow = _selectedWarehouse == 'all'
-        ? AppConstants.warehouseLocationNames
-        : [_selectedWarehouse];
-    final locationKeysToShow = locationsToShow
-        .map((l) => l.toLowerCase().replaceAll(' ', '_'))
-        .toList();
+    final allNames = AppConstants.warehouseLocationNames;
+    final allKeys = AppConstants.warehouseLocationKeys;
+    List<String> locationsToShow;
+    List<String> locationKeysToShow;
+
+    if (_selectedWarehouse == 'all') {
+      locationsToShow = allNames;
+      locationKeysToShow = allKeys;
+    } else {
+      final idx = allNames.indexOf(_selectedWarehouse);
+      locationsToShow = [_selectedWarehouse];
+      locationKeysToShow = idx >= 0 ? [allKeys[idx]] : [_selectedWarehouse.toLowerCase().replaceAll(' ', '_')];
+    }
 
     // Initialize controllers for each product/location combination
     for (final stock in stocks) {
       if (!_actualQuantityCtls.containsKey(stock.productId)) {
         _actualQuantityCtls[stock.productId] = {};
-        for (final location in AppConstants.warehouseLocationNames) {
-          final locationKey = location.toLowerCase().replaceAll(' ', '_');
+        for (int i = 0; i < allNames.length; i++) {
+          final locationKey = allKeys[i];
           _actualQuantityCtls[stock.productId]![locationKey] =
               TextEditingController(
             text: _submitted ? null : stock.getStockAt(locationKey).toString(),

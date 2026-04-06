@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/constants/app_constants.dart';
 import 'core/services/notification_service.dart';
+import 'data/datasources/warehouse_remote_datasource.dart';
 import 'firebase_options.dart';
 import 'injection_container.dart';
 
@@ -39,8 +40,12 @@ void main() async {
         hour: hour, minute: minute);
   }
 
-  // Load custom warehouse names from Firestore (shared across all users)
+  // Seed default warehouses if collection is empty (backward-compatible migration)
+  await sl<WarehouseRemoteDatasource>().seedDefaultWarehouses();
+
+  // Load warehouse keys/names into AppConstants for backward-compatible UI usage
   await AppConstants.loadWarehouseNames();
 
   runApp(const PhaoHoaApp());
 }
+

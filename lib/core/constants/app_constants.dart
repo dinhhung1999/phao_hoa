@@ -7,63 +7,39 @@ class AppConstants {
 
   static const String appName = 'Quản lý Kho Pháo Hoa';
 
-  /// Warehouse location storage keys (DO NOT change these — they are Firestore keys)
-  static const List<String> warehouseLocationKeys = [
-    'kho_1',
-    'kho_2',
-    'kho_3',
-  ];
+  /// Warehouse location keys and names — loaded dynamically from Firestore 'warehouses' collection.
+  /// These are populated at startup via [loadWarehouseNames].
+  static List<String> warehouseLocationKeys = [];
+  static List<String> warehouseLocationNames = [];
 
-  /// Default warehouse display names (can be overridden via Firestore settings)
-  static const List<String> defaultWarehouseNames = [
-    'Kho 1',
-    'Kho 2',
-    'Kho 3',
-  ];
-
-  /// Current warehouse display names — loaded from Firestore at startup
-  static List<String> warehouseLocationNames = List.from(defaultWarehouseNames);
-
-  /// Load warehouse names from Firestore (call at app startup)
+  /// Load warehouse keys and names from the 'warehouses' Firestore collection.
+  /// Call at app startup after seedDefaultWarehouses.
   static Future<void> loadWarehouseNames() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection(FirestorePaths.appConfig)
-          .doc(FirestorePaths.warehouseConfigDoc)
+      final snap = await FirebaseFirestore.instance
+          .collection(FirestorePaths.warehouses)
+          .where('is_active', isEqualTo: true)
+          .orderBy('created_at')
           .get();
 
-      if (doc.exists) {
-        final data = doc.data()!;
-        final names = data['warehouse_names'] as Map<String, dynamic>?;
-        if (names != null) {
-          for (int i = 0; i < warehouseLocationKeys.length; i++) {
-            final key = warehouseLocationKeys[i];
-            if (names.containsKey(key)) {
-              warehouseLocationNames[i] = names[key] as String;
-            }
-          }
-        }
+      warehouseLocationKeys = snap.docs.map((d) => d.id).toList();
+      warehouseLocationNames = snap.docs.map((d) {
+        final data = d.data();
+        return (data['name'] as String?) ?? d.id;
+      }).toList();
+
+      // Fallback if no warehouses exist
+      if (warehouseLocationKeys.isEmpty) {
+        warehouseLocationKeys = ['kho_1', 'kho_2', 'kho_3'];
+        warehouseLocationNames = ['Kho 1', 'Kho 2', 'Kho 3'];
       }
     } catch (_) {
       // Fallback to defaults on error — app still works
+      if (warehouseLocationKeys.isEmpty) {
+        warehouseLocationKeys = ['kho_1', 'kho_2', 'kho_3'];
+        warehouseLocationNames = ['Kho 1', 'Kho 2', 'Kho 3'];
+      }
     }
-  }
-
-  /// Save warehouse names to Firestore (called from settings)
-  static Future<void> saveWarehouseNames(List<String> names) async {
-    final Map<String, String> nameMap = {};
-    for (int i = 0; i < warehouseLocationKeys.length; i++) {
-      nameMap[warehouseLocationKeys[i]] = names[i];
-      warehouseLocationNames[i] = names[i];
-    }
-
-    await FirebaseFirestore.instance
-        .collection(FirestorePaths.appConfig)
-        .doc(FirestorePaths.warehouseConfigDoc)
-        .set({
-      'warehouse_names': nameMap,
-      'updated_at': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
   }
 
   /// Get display name for a location key

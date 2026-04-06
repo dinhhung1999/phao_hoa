@@ -7,6 +7,7 @@ class FirestorePaths {
   static const String inventory = 'inventory';
   static const String transactions = 'transactions';
   static const String customers = 'customers';
+  static const String warehouses = 'warehouses';
   static const String reconciliations = 'reconciliations';
   static const String dailyChecklists = 'daily_checklists';
   static const String appConfig = 'app_config';
