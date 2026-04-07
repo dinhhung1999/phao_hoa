@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/models/paginated_result.dart';
+import '../../entities/price_record.dart';
 import '../../entities/product.dart';
 import '../../repositories/product_repository.dart';
 
@@ -63,4 +64,52 @@ class GetProductsPaginated {
     int limit = 20,
     dynamic startAfter,
   }) => _repository.getProductsPaginated(limit: limit, startAfter: startAfter);
+}
+
+/// Update product price and record history
+class UpdateProductPrice {
+  final ProductRepository _repository;
+
+  UpdateProductPrice(this._repository);
+
+  Future<Either<Failure, void>> call({
+    required String productId,
+    required double newImportPrice,
+    required double newExportPrice,
+    String? updatedBy,
+  }) => _repository.updateProductPrice(
+    productId: productId,
+    newImportPrice: newImportPrice,
+    newExportPrice: newExportPrice,
+    updatedBy: updatedBy,
+  );
+}
+
+/// Get price history for a product
+class GetPriceHistory {
+  final ProductRepository _repository;
+
+  GetPriceHistory(this._repository);
+
+  Future<Either<Failure, List<PriceRecord>>> call(String productId) =>
+      _repository.getPriceHistory(productId);
+}
+
+/// Record initial price when product is first created
+class AddInitialPriceRecord {
+  final ProductRepository _repository;
+
+  AddInitialPriceRecord(this._repository);
+
+  Future<Either<Failure, void>> call({
+    required String productId,
+    required double importPrice,
+    required double exportPrice,
+    String? updatedBy,
+  }) => _repository.addInitialPriceRecord(
+    productId: productId,
+    importPrice: importPrice,
+    exportPrice: exportPrice,
+    updatedBy: updatedBy,
+  );
 }

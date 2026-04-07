@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
 import '../../core/models/paginated_result.dart';
+import '../../domain/entities/price_record.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../datasources/product_remote_datasource.dart';
@@ -85,6 +86,77 @@ class ProductRepositoryImpl implements ProductRepository {
         lastDocument: lastDoc,
         hasMore: models.length >= limit,
       ));
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  // ── Price History ──
+
+  @override
+  Future<Either<Failure, void>> updateProductPrice({
+    required String productId,
+    required double newImportPrice,
+    required double newExportPrice,
+    String? updatedBy,
+  }) async {
+    try {
+      await _datasource.updateProductPrice(
+        productId: productId,
+        newImportPrice: newImportPrice,
+        newExportPrice: newExportPrice,
+        updatedBy: updatedBy,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<PriceRecord>>> getPriceHistory(String productId) async {
+    try {
+      final rawList = await _datasource.getPriceHistory(productId);
+      final records = rawList.map((data) {
+        final recordedAt = data['recorded_at'];
+        DateTime date;
+        if (recordedAt is Timestamp) {
+          date = recordedAt.toDate();
+        } else if (recordedAt is String) {
+          date = DateTime.parse(recordedAt);
+        } else {
+          date = DateTime.now();
+        }
+        return PriceRecord(
+          id: data['id'] as String? ?? '',
+          productId: data['product_id'] as String? ?? productId,
+          importPrice: (data['import_price'] as num?)?.toDouble() ?? 0,
+          exportPrice: (data['export_price'] as num?)?.toDouble() ?? 0,
+          updatedBy: data['updated_by'] as String?,
+          recordedAt: date,
+        );
+      }).toList();
+      return Right(records);
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> addInitialPriceRecord({
+    required String productId,
+    required double importPrice,
+    required double exportPrice,
+    String? updatedBy,
+  }) async {
+    try {
+      await _datasource.addPriceRecord(
+        productId: productId,
+        importPrice: importPrice,
+        exportPrice: exportPrice,
+        updatedBy: updatedBy,
+      );
+      return const Right(null);
     } catch (e) {
       return Left(FirestoreFailure(e.toString()));
     }

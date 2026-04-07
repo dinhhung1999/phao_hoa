@@ -16,4 +16,10 @@ sealed class CategoryState with _$CategoryState {
     dynamic lastDocument,
     String? error,
   }) = _PaginatedLoaded;
+
+  // Price history state
+  const factory CategoryState.priceHistoryLoaded({
+    required List<PriceRecord> records,
+    required Product product,
+  }) = _PriceHistoryLoaded;
 }

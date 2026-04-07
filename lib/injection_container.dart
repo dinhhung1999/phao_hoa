@@ -98,6 +98,9 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => AddProduct(sl()));
   sl.registerLazySingleton(() => UpdateProduct(sl()));
   sl.registerLazySingleton(() => DeleteProduct(sl()));
+  sl.registerLazySingleton(() => UpdateProductPrice(sl()));
+  sl.registerLazySingleton(() => GetPriceHistory(sl()));
+  sl.registerLazySingleton(() => AddInitialPriceRecord(sl()));
 
   // ── Use Cases: Transaction ──
   sl.registerLazySingleton(() => CreateExportOrder(sl()));
@@ -155,6 +158,9 @@ Future<void> initDependencies() async {
     addProduct: sl(),
     updateProduct: sl(),
     deleteProduct: sl(),
+    updateProductPrice: sl(),
+    getPriceHistory: sl(),
+    addInitialPriceRecord: sl(),
   ));
 
   sl.registerFactory(() => TransactionBloc(

@@ -64,7 +64,7 @@ class _CategoryPageState extends State<CategoryPage> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_category',
         onPressed: () async {
-          final result = await Navigator.of(context).push<bool>(
+          await Navigator.of(context).push<bool>(
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
                 value: context.read<CategoryBloc>(),
@@ -72,7 +72,7 @@ class _CategoryPageState extends State<CategoryPage> {
               ),
             ),
           );
-          if (result == true && context.mounted) {
+          if (context.mounted) {
             context
                 .read<CategoryBloc>()
                 .add(const CategoryEvent.refreshProducts());
@@ -102,6 +102,7 @@ class _CategoryPageState extends State<CategoryPage> {
               loaded.isLoadingMore,
             ),
             actionSuccess: (_) => const AppLoadingIndicator(),
+            priceHistoryLoaded: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
               onRetry: () => context
@@ -235,7 +236,7 @@ class _CategoryPageState extends State<CategoryPage> {
           ],
         ),
         onTap: () async {
-          final result = await Navigator.of(context).push<bool>(
+          await Navigator.of(context).push<bool>(
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
                 value: context.read<CategoryBloc>(),
@@ -243,7 +244,7 @@ class _CategoryPageState extends State<CategoryPage> {
               ),
             ),
           );
-          if (result == true && context.mounted) {
+          if (context.mounted) {
             context
                 .read<CategoryBloc>()
                 .add(const CategoryEvent.refreshProducts());
