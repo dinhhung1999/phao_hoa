@@ -8,11 +8,13 @@ part 'transaction_event.dart';
 part 'transaction_state.dart';
 part 'transaction_bloc.freezed.dart';
 
+
 class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final GetTransactionHistory _getHistory;
   final GetTransactionHistoryPaginated _getHistoryPaginated;
   final CreateExportOrder _createExport;
   final CreateImportOrder _createImport;
+  final UpdateDebtPayment _updateDebtPayment;
 
   static const int _pageSize = 20;
 
@@ -21,10 +23,12 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     required GetTransactionHistoryPaginated getHistoryPaginated,
     required CreateExportOrder createExport,
     required CreateImportOrder createImport,
+    required UpdateDebtPayment updateDebtPayment,
   })  : _getHistory = getHistory,
         _getHistoryPaginated = getHistoryPaginated,
         _createExport = createExport,
         _createImport = createImport,
+        _updateDebtPayment = updateDebtPayment,
         super(const TransactionState.initial()) {
     on<TransactionEvent>((event, emit) async {
       await event.map(
@@ -34,6 +38,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         loadHistoryPaginated: (e) => _onLoadPaginated(e, emit),
         loadMoreHistory: (_) => _onLoadMore(emit),
         refreshHistory: (e) => _onRefresh(e, emit),
+        updateDebtPayment: (e) => _onUpdateDebt(e, emit),
       );
     });
   }
@@ -162,6 +167,23 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     result.fold(
       (f) => emit(TransactionState.error(f.message)),
       (id) => emit(TransactionState.created(id)),
+    );
+  }
+
+  Future<void> _onUpdateDebt(
+    _UpdateDebtPayment event, Emitter<TransactionState> emit,
+  ) async {
+    emit(const TransactionState.loading());
+    final result = await _updateDebtPayment(
+      transactionId: event.transactionId,
+      newPaidAmount: event.newPaidAmount,
+      totalValue: event.totalValue,
+      customerId: event.customerId,
+      previousPaidAmount: event.previousPaidAmount,
+    );
+    result.fold(
+      (f) => emit(TransactionState.error(f.message)),
+      (_) => emit(TransactionState.debtUpdated(event.transactionId)),
     );
   }
 }

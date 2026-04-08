@@ -35,4 +35,12 @@ sealed class TransactionEvent with _$TransactionEvent {
     String? type,
     String? warehouseLocation,
   }) = _RefreshHistory;
+
+  const factory TransactionEvent.updateDebtPayment({
+    required String transactionId,
+    required double newPaidAmount,
+    required double totalValue,
+    String? customerId,
+    required double previousPaidAmount,
+  }) = _UpdateDebtPayment;
 }

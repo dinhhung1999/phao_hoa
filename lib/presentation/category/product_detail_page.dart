@@ -6,13 +6,27 @@ import '../../core/utils/date_formatter.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../domain/entities/product.dart';
 import 'category_bloc.dart';
+import 'price_history_page.dart';
 import 'product_form_page.dart';
 
 /// Product detail page — displays full info with edit/delete actions
-class ProductDetailPage extends StatelessWidget {
+class ProductDetailPage extends StatefulWidget {
   final Product product;
 
   const ProductDetailPage({super.key, required this.product});
+
+  @override
+  State<ProductDetailPage> createState() => _ProductDetailPageState();
+}
+
+class _ProductDetailPageState extends State<ProductDetailPage> {
+  late Product _product;
+
+  @override
+  void initState() {
+    super.initState();
+    _product = widget.product;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +41,13 @@ class ProductDetailPage extends StatelessWidget {
               ),
             );
             Navigator.of(context).pop(true);
+          },
+          // When products are reloaded, update our local product
+          paginatedLoaded: (loaded) {
+            final updated = loaded.products.where((p) => p.id == _product.id);
+            if (updated.isNotEmpty) {
+              setState(() => _product = updated.first);
+            }
           },
         );
       },
@@ -58,16 +79,16 @@ class ProductDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product.name,
+                      _product.name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (product.unit.isNotEmpty) ...[
+                    if (_product.unit.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _chip(product.unit),
+                      _chip(_product.unit),
                     ],
                   ],
                 ),
@@ -79,20 +100,20 @@ class ProductDetailPage extends StatelessWidget {
             _infoTile(
               icon: Icons.straighten,
               label: 'Đơn vị',
-              value: product.unit,
+              value: _product.unit,
             ),
             const Divider(),
             _infoTile(
               icon: Icons.arrow_downward,
               label: 'Giá nhập',
-              value: CurrencyFormatter.format(product.importPrice),
+              value: CurrencyFormatter.format(_product.importPrice),
               valueColor: AppColors.importColor,
             ),
             const Divider(),
             _infoTile(
               icon: Icons.arrow_upward,
               label: 'Giá xuất',
-              value: CurrencyFormatter.format(product.exportPrice),
+              value: CurrencyFormatter.format(_product.exportPrice),
               valueColor: AppColors.exportColor,
             ),
             const Divider(),
@@ -100,27 +121,56 @@ class ProductDetailPage extends StatelessWidget {
               icon: Icons.trending_up,
               label: 'Lợi nhuận / đơn vị',
               value: CurrencyFormatter.format(
-                product.exportPrice - product.importPrice,
+                _product.exportPrice - _product.importPrice,
               ),
               valueColor: AppColors.success,
             ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider.value(
+                        value: context.read<CategoryBloc>(),
+                        child: PriceHistoryPage(product: _product),
+                      ),
+                    ),
+                  );
+                  // Refresh product data when returning from price history
+                  if (mounted) {
+                    context.read<CategoryBloc>().add(
+                      const CategoryEvent.refreshProducts(),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.show_chart, size: 18),
+                label: const Text('Xem lịch sử giá & biểu đồ'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.info,
+                  side: const BorderSide(color: AppColors.info),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             const Divider(),
             _infoTile(
               icon: Icons.circle,
               label: 'Trạng thái',
-              value: product.isActive ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
-              valueColor: product.isActive ? AppColors.success : AppColors.textSecondary,
+              value: _product.isActive ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
+              valueColor: _product.isActive ? AppColors.success : AppColors.textSecondary,
             ),
             const Divider(),
             _infoTile(
               icon: Icons.calendar_today,
               label: 'Ngày tạo',
-              value: DateFormatter.formatDateTime(product.createdAt),
+              value: DateFormatter.formatDateTime(_product.createdAt),
             ),
             _infoTile(
               icon: Icons.update,
               label: 'Cập nhật lần cuối',
-              value: DateFormatter.formatDateTime(product.updatedAt),
+              value: DateFormatter.formatDateTime(_product.updatedAt),
             ),
           ],
         ),
@@ -172,7 +222,7 @@ class ProductDetailPage extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
           value: context.read<CategoryBloc>(),
-          child: ProductFormPage(product: product),
+          child: ProductFormPage(product: _product),
         ),
       ),
     );
@@ -185,12 +235,12 @@ class ProductDetailPage extends StatelessWidget {
     final confirmed = await ConfirmDialog.show(
       context,
       title: 'Xóa sản phẩm',
-      message: 'Bạn có chắc muốn xóa "${product.name}"?',
+      message: 'Bạn có chắc muốn xóa "${_product.name}"?',
       confirmText: 'Xóa',
       confirmColor: AppColors.error,
     );
     if (confirmed && context.mounted) {
-      context.read<CategoryBloc>().add(CategoryEvent.deleteProduct(product.id));
+      context.read<CategoryBloc>().add(CategoryEvent.deleteProduct(_product.id));
     }
   }
 }

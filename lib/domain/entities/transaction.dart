@@ -10,11 +10,13 @@ class Transaction extends Equatable {
   final String customerType;
   final String warehouseLocation;
   final bool isDebt;
+  final int totalQuantity;
   final double totalValue;
   final double paidAmount;
   final String? note;
   final DateTime createdAt;
   final String createdBy;
+  final List<Map<String, dynamic>> itemsSummary;
   final List<TransactionItem> items;
 
   const Transaction({
@@ -25,11 +27,13 @@ class Transaction extends Equatable {
     required this.customerType,
     required this.warehouseLocation,
     this.isDebt = false,
+    this.totalQuantity = 0,
     required this.totalValue,
     required this.paidAmount,
     this.note,
     required this.createdAt,
     required this.createdBy,
+    this.itemsSummary = const [],
     this.items = const [],
   });
 

@@ -111,24 +111,63 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _handleResetData() async {
-    // First confirmation
-    final confirmed = await ConfirmDialog.show(
-      context,
-      title: '⚠️ Xoá toàn bộ dữ liệu',
-      message:
-          'Hành động này sẽ XOÁ VĨNH VIỄN tất cả dữ liệu:\n\n'
-          '• Sản phẩm\n'
-          '• Tồn kho\n'
-          '• Giao dịch nhập/xuất\n'
-          '• Khách hàng & công nợ\n\n'
-          'Dữ liệu không thể khôi phục!',
-      confirmText: 'Tiếp tục',
-      confirmColor: AppColors.error,
-    );
-    if (!confirmed || !mounted) return;
 
-    // Second confirmation — type "XOA"
+  Future<void> _handleSelectiveReset() async {
+    final selectedTypes = await showDialog<Set<DataResetType>>(
+      context: context,
+      builder: (ctx) => _SelectiveResetDialog(),
+    );
+
+    if (selectedTypes == null || selectedTypes.isEmpty || !mounted) return;
+
+    // Show warnings if applicable
+    final warnings = DataResetWarning.getWarnings(selectedTypes);
+    if (warnings.isNotEmpty) {
+      final proceed = await ConfirmDialog.show(
+        context,
+        title: '⚠️ Cảnh báo',
+        message: '${warnings.join('\n\n')}\n\nBạn vẫn muốn tiếp tục?',
+        confirmText: 'Tiếp tục',
+        confirmColor: AppColors.warning,
+      );
+      if (!proceed || !mounted) return;
+    }
+
+    // Type confirmation
+    final labels = selectedTypes.map((t) => t.label).join(', ');
+    final typedOk = await _showTypeConfirmDialog('xoá: $labels');
+    if (!typedOk || !mounted) return;
+
+    // Perform selective reset
+    setState(() => _isResetting = true);
+    try {
+      final service = DataResetService();
+      final results = await service.resetSelectiveData(selectedTypes);
+      final totalDeleted = results.values.fold(0, (a, b) => a + b);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã xoá $totalDeleted bản ghi thành công.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi xoá dữ liệu: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isResetting = false);
+    }
+  }
+
+  /// Shows a text confirmation dialog requiring user to type "XOA"
+  Future<bool> _showTypeConfirmDialog(String action) async {
     final confirmText = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -138,7 +177,7 @@ class _SettingsPageState extends State<SettingsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Nhập "XOA" để xác nhận xoá toàn bộ dữ liệu:'),
+              Text('Nhập "XOA" để xác nhận $action:'),
               const SizedBox(height: 12),
               TextField(
                 controller: ctl,
@@ -166,8 +205,8 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
 
-    if (confirmText != 'XOA' || !mounted) {
-      if (confirmText != null && confirmText != 'XOA' && mounted) {
+    if (confirmText != 'XOA' && mounted) {
+      if (confirmText != null && confirmText != 'XOA') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Nhập sai. Hãy nhập đúng "XOA" để xác nhận.'),
@@ -175,35 +214,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         );
       }
-      return;
+      return false;
     }
-
-    // Perform reset
-    setState(() => _isResetting = true);
-    try {
-      final service = DataResetService();
-      final results = await service.resetAllData();
-      final totalDeleted = results.values.fold(0, (a, b) => a + b);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Đã xoá $totalDeleted bản ghi thành công.'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi khi xoá dữ liệu: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isResetting = false);
-    }
+    return true;
   }
 
   @override
@@ -435,15 +448,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   ListTile(
                     leading: Icon(
-                      Icons.delete_forever,
-                      color: AppColors.error,
+                      Icons.cleaning_services_outlined,
+                      color: AppColors.warning,
                     ),
                     title: const Text(
-                      'Xoá toàn bộ dữ liệu',
-                      style: TextStyle(color: AppColors.error),
+                      'Xoá dữ liệu chọn lọc',
+                      style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                     subtitle: const Text(
-                      'Xoá tất cả sản phẩm, giao dịch, khách hàng, tồn kho',
+                      'Chọn từng loại dữ liệu muốn xoá',
                       style: TextStyle(fontSize: 12),
                     ),
                     trailing: _isResetting
@@ -453,7 +466,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.chevron_right),
-                    onTap: _isResetting ? null : _handleResetData,
+                    onTap: _isResetting ? null : _handleSelectiveReset,
                   ),
                 ],
               ),
@@ -490,6 +503,106 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Dialog with checkboxes for selecting which data types to reset
+class _SelectiveResetDialog extends StatefulWidget {
+  @override
+  State<_SelectiveResetDialog> createState() => _SelectiveResetDialogState();
+}
+
+class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
+  final Set<DataResetType> _selected = {};
+
+  static const _icons = {
+    DataResetType.products: Icons.inventory_2_outlined,
+    DataResetType.inventory: Icons.store_outlined,
+    DataResetType.transactions: Icons.receipt_long_outlined,
+    DataResetType.customers: Icons.people_outline,
+    DataResetType.checklists: Icons.checklist_outlined,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final warnings = DataResetWarning.getWarnings(_selected);
+
+    return AlertDialog(
+      title: const Text('Chọn dữ liệu muốn xoá'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...DataResetType.values.map((type) => CheckboxListTile(
+              value: _selected.contains(type),
+              onChanged: (v) {
+                setState(() {
+                  if (v == true) {
+                    _selected.add(type);
+                  } else {
+                    _selected.remove(type);
+                  }
+                });
+              },
+              title: Text(type.label),
+              secondary: Icon(
+                _icons[type] ?? Icons.data_object,
+                color: _selected.contains(type)
+                    ? AppColors.error
+                    : AppColors.textSecondary,
+              ),
+              activeColor: AppColors.error,
+              dense: true,
+              controlAffinity: ListTileControlAffinity.trailing,
+            )),
+            if (warnings.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        size: 18, color: AppColors.warning),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        warnings.join('\n'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          onPressed: _selected.isEmpty
+              ? null
+              : () => Navigator.pop(context, _selected),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          child: Text('Xoá ${_selected.length} loại'),
+        ),
+      ],
     );
   }
 }

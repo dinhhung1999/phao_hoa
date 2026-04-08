@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../domain/entities/price_record.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/product/product_usecases.dart';
 
@@ -13,6 +14,9 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
   final AddProduct _addProduct;
   final UpdateProduct _updateProduct;
   final DeleteProduct _deleteProduct;
+  final UpdateProductPrice _updateProductPrice;
+  final GetPriceHistory _getPriceHistory;
+  final AddInitialPriceRecord _addInitialPriceRecord;
 
   static const int _pageSize = 20;
 
@@ -22,11 +26,17 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     required AddProduct addProduct,
     required UpdateProduct updateProduct,
     required DeleteProduct deleteProduct,
+    required UpdateProductPrice updateProductPrice,
+    required GetPriceHistory getPriceHistory,
+    required AddInitialPriceRecord addInitialPriceRecord,
   })  : _getAllProducts = getAllProducts,
         _getProductsPaginated = getProductsPaginated,
         _addProduct = addProduct,
         _updateProduct = updateProduct,
         _deleteProduct = deleteProduct,
+        _updateProductPrice = updateProductPrice,
+        _getPriceHistory = getPriceHistory,
+        _addInitialPriceRecord = addInitialPriceRecord,
         super(const CategoryState.initial()) {
     on<CategoryEvent>((event, emit) async {
       await event.map(
@@ -37,6 +47,8 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
         loadProductsPaginated: (_) => _onLoadPaginated(emit),
         loadMoreProducts: (_) => _onLoadMore(emit),
         refreshProducts: (_) => _onRefresh(emit),
+        updatePrice: (e) => _onUpdatePrice(e, emit),
+        loadPriceHistory: (e) => _onLoadPriceHistory(e, emit),
       );
     });
   }
@@ -108,7 +120,14 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     final result = await _addProduct(event.product);
     result.fold(
       (f) => emit(CategoryState.error(f.message)),
-      (_) {
+      (productId) {
+        // Record initial price
+        _addInitialPriceRecord(
+          productId: productId,
+          importPrice: event.product.importPrice,
+          exportPrice: event.product.exportPrice,
+          updatedBy: event.product.updatedBy,
+        );
         emit(const CategoryState.actionSuccess('Đã thêm sản phẩm'));
         add(const CategoryEvent.loadProductsPaginated());
       },
@@ -141,5 +160,80 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
         add(const CategoryEvent.loadProductsPaginated());
       },
     );
+  }
+
+  // ── Price History ──
+
+  Future<void> _onUpdatePrice(
+    _UpdatePrice event, Emitter<CategoryState> emit,
+  ) async {
+    emit(const CategoryState.loading());
+    final result = await _updateProductPrice(
+      productId: event.productId,
+      newImportPrice: event.newImportPrice,
+      newExportPrice: event.newExportPrice,
+      updatedBy: event.updatedBy,
+    );
+    result.fold(
+      (f) => emit(CategoryState.error(f.message)),
+      (_) {
+        emit(const CategoryState.actionSuccess('Đã cập nhật giá'));
+        add(const CategoryEvent.loadProductsPaginated());
+      },
+    );
+  }
+
+  Future<void> _onLoadPriceHistory(
+    _LoadPriceHistory event, Emitter<CategoryState> emit,
+  ) async {
+    emit(const CategoryState.loading());
+
+    // Get product info first
+    final productResult = await _getAllProducts();
+
+    if (productResult.isLeft()) {
+      productResult.fold(
+        (f) => emit(CategoryState.error(f.message)),
+        (_) {},
+      );
+      return;
+    }
+
+    final products = productResult.getOrElse(() => []);
+    final product = products.firstWhere(
+      (p) => p.id == event.productId,
+      orElse: () => products.first,
+    );
+
+    // Get price history
+    final historyResult = await _getPriceHistory(event.productId);
+
+    if (historyResult.isLeft()) {
+      historyResult.fold(
+        (f) => emit(CategoryState.error(f.message)),
+        (_) {},
+      );
+      return;
+    }
+
+    var records = historyResult.getOrElse(() => []);
+
+    // Auto-seed initial price record if empty (for products created before this feature)
+    if (records.isEmpty) {
+      await _addInitialPriceRecord(
+        productId: product.id,
+        importPrice: product.importPrice,
+        exportPrice: product.exportPrice,
+        updatedBy: product.updatedBy,
+      );
+      // Reload after seeding
+      final reloadResult = await _getPriceHistory(event.productId);
+      records = reloadResult.getOrElse(() => []);
+    }
+
+    emit(CategoryState.priceHistoryLoaded(
+      records: records,
+      product: product,
+    ));
   }
 }

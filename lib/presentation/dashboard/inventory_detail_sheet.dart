@@ -100,7 +100,7 @@ class InventoryDetailSheet extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
-                color: AppColors.textPrimary,
+                color: AppColors.info,
               ),
             ),
             const SizedBox(height: 12),
@@ -187,7 +187,7 @@ class InventoryDetailSheet extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
-                color: AppColors.textPrimary,
+                color: AppColors.info,
               ),
             ),
             const SizedBox(height: 12),

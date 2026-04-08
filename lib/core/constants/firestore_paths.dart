@@ -16,6 +16,7 @@ class FirestorePaths {
   static const String transactionItems = 'items';
   static const String debtRecords = 'debt_records';
   static const String reconciliationItems = 'items';
+  static const String priceHistory = 'price_history';
 
   // App config documents
   static const String settingsDoc = 'settings';

@@ -6,7 +6,9 @@ import '../../core/utils/validators.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/error_widget.dart';
 import '../../core/widgets/confirm_dialog.dart';
+import '../../core/utils/date_formatter.dart';
 import '../../domain/entities/customer.dart';
+import '../../domain/entities/debt_record.dart';
 import '../auth/auth_bloc.dart';
 import 'contact_picker_page.dart';
 import 'customer_bloc.dart';
@@ -66,6 +68,10 @@ class _CustomerListPageState extends State<CustomerListPage> {
         child: const Icon(Icons.person_add),
       ),
       body: BlocConsumer<CustomerBloc, CustomerState>(
+        listenWhen: (prev, curr) => curr.maybeWhen(
+          actionSuccess: (_) => true,
+          orElse: () => false,
+        ),
         listener: (context, state) {
           state.mapOrNull(
             actionSuccess: (s) {
@@ -78,6 +84,16 @@ class _CustomerListPageState extends State<CustomerListPage> {
             },
           );
         },
+        buildWhen: (prev, curr) {
+          // Only rebuild for states relevant to the customer list page
+          return curr.maybeWhen(
+            paginatedLoaded: (_, __, ___, ____, _____) => true,
+            customersLoaded: (_) => true,
+            initial: () => true,
+            error: (_) => true,
+            orElse: () => false,
+          );
+        },
         builder: (context, state) {
           return state.map(
             initial: (_) => const AppLoadingIndicator(),
@@ -86,7 +102,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
             paginatedLoaded: (loaded) => _buildSearchableList(
               loaded.customers, loaded.hasMore, loaded.isLoadingMore,
             ),
-            debtsLoaded: (_) => const AppLoadingIndicator(),
+            debtsLoaded: (_) => const SizedBox.shrink(),
             actionSuccess: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
@@ -248,6 +264,12 @@ class _CustomerListPageState extends State<CustomerListPage> {
   }
 
   void _showDebtBottomSheet(BuildContext context, Customer customer) {
+    // Load debt records when opening
+    context.read<CustomerBloc>().add(CustomerEvent.loadDebts(
+      customerId: customer.id,
+      customer: customer,
+    ));
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -255,168 +277,365 @@ class _CustomerListPageState extends State<CustomerListPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.5,
+        initialChildSize: 0.65,
         minChildSize: 0.3,
-        maxChildSize: 0.85,
+        maxChildSize: 0.9,
         expand: false,
-        builder: (context, scrollController) {
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.divider,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  customer.name,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+        builder: (sheetContext, scrollController) {
+          return BlocBuilder<CustomerBloc, CustomerState>(
+            bloc: context.read<CustomerBloc>(),
+            builder: (_, state) {
+              // Extract debt records if available
+              List<DebtRecord>? records;
+              state.mapOrNull(
+                debtsLoaded: (loaded) {
+                  records = loaded.records;
+                },
+              );
+
+              return Padding(
+                padding: const EdgeInsets.all(20),
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.divider,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                ),
-                const SizedBox(height: 4),
-                if (customer.phone != null)
-                  Text(
-                    customer.phone!,
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
-                const SizedBox(height: 16),
-                // Debt summary card
-                Card(
-                  color: customer.hasDebt
-                      ? AppColors.debtActive.withValues(alpha: 0.05)
-                      : AppColors.success.withValues(alpha: 0.05),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Tổng công nợ',
-                            style: TextStyle(fontSize: 16)),
-                        Text(
-                          CurrencyFormatter.format(customer.totalDebt),
-                          style: TextStyle(
-                            fontSize: 20,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      customer.name,
+                      style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: customer.hasDebt
-                                ? AppColors.debtActive
-                                : AppColors.success,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (customer.phone != null)
+                      Text(
+                        customer.phone!,
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+                    const SizedBox(height: 16),
+
+                    // ── Debt summary card with breakdown ──
+                    _buildDebtSummaryCard(customer, records),
+                    const SizedBox(height: 16),
+
+                    // ── Recent history ──
+                    if (records != null && records!.isNotEmpty) ...[
+                      _buildRecentHistory(records!),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // View full history button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final bloc = context.read<CustomerBloc>();
+                          final navigator = Navigator.of(context);
+                          Navigator.pop(sheetContext);
+                          await navigator.push(
+                            MaterialPageRoute(
+                              builder: (_) => BlocProvider.value(
+                                value: bloc,
+                                child: CustomerDebtPage(customer: customer),
+                              ),
+                            ),
+                          );
+                          // Reload customer list when returning from debt page
+                          bloc.add(const CustomerEvent.loadCustomersPaginated());
+                        },
+                        icon: const Icon(Icons.history, size: 18),
+                        label: const Text('Xem toàn bộ lịch sử'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (customer.hasDebt) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(sheetContext);
+                                _showPaymentDialog(context, customer);
+                              },
+                              icon: const Icon(Icons.payment),
+                              label: const Text('Thanh toán'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(sheetContext);
+                                _handleSettleAll(context, customer);
+                              },
+                              icon: const Icon(Icons.done_all),
+                              label: const Text('Tất toán'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.success,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    // Edit & Delete row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(sheetContext);
+                              _showEditCustomerDialog(context, customer);
+                            },
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text('Sửa'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final bloc = this.context.read<CustomerBloc>();
+                              final pageContext = this.context;
+                              Navigator.pop(sheetContext);
+                              if (!pageContext.mounted) return;
+                              final confirmed = await ConfirmDialog.show(
+                                pageContext,
+                                title: 'Xóa khách hàng',
+                                message: 'Bạn có chắc muốn xóa "${customer.name}"?',
+                                confirmText: 'Xóa',
+                                confirmColor: AppColors.error,
+                              );
+                              if (confirmed) {
+                                bloc.add(
+                                  CustomerEvent.deleteCustomer(customer.id),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.delete_outline, size: 18,
+                                color: AppColors.error),
+                            label: const Text('Xóa',
+                                style: TextStyle(color: AppColors.error)),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.error),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Debt summary card with total debts, total paid, and current balance
+  Widget _buildDebtSummaryCard(Customer customer, List<DebtRecord>? records) {
+    double totalDebts = 0;
+    double totalPaid = 0;
+
+    if (records != null) {
+      for (final r in records) {
+        if (r.isDebt) {
+          totalDebts += r.amount;
+        } else {
+          totalPaid += r.amount;
+        }
+      }
+    }
+
+    return Card(
+      color: customer.hasDebt
+          ? AppColors.debtActive.withValues(alpha: 0.05)
+          : AppColors.success.withValues(alpha: 0.05),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Current balance - large
+            Text(
+              CurrencyFormatter.format(customer.totalDebt),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: customer.hasDebt
+                    ? AppColors.debtActive
+                    : AppColors.success,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              customer.hasDebt ? 'Công nợ hiện tại' : 'Không có công nợ',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+
+            // Breakdown row
+            if (records != null && records.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.arrow_upward, size: 14,
+                                color: AppColors.debtActive),
+                            const SizedBox(width: 4),
+                            const Text('Tổng ghi nợ',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.format(totalDebts),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: AppColors.debtActive,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                // View debt history
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider.value(
-                            value: context.read<CustomerBloc>(),
-                            child: CustomerDebtPage(customer: customer),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: AppColors.divider,
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.arrow_downward, size: 14,
+                                color: AppColors.success),
+                            const SizedBox(width: 4),
+                            const Text('Đã thanh toán',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.format(totalPaid),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: AppColors.success,
                           ),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.history, size: 18),
-                    label: const Text('Xem lịch sử công nợ'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Recent debt/payment history (last 5 records)
+  Widget _buildRecentHistory(List<DebtRecord> records) {
+    final recent = records.length > 5 ? records.sublist(0, 5) : records;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Giao dịch gần đây',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            Text(
+              '${records.length} bản ghi',
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...recent.map((record) {
+          final isDebt = record.isDebt;
+          final color = isDebt ? AppColors.debtActive : AppColors.success;
+          final prefix = isDebt ? '+' : '-';
+          final label = isDebt ? 'Ghi nợ' : 'Thanh toán';
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (customer.hasDebt) ...[
-                  Row(
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _showPaymentDialog(context, customer);
-                          },
-                          icon: const Icon(Icons.payment),
-                          label: const Text('Thanh toán'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _handleSettleAll(context, customer);
-                          },
-                          icon: const Icon(Icons.done_all),
-                          label: const Text('Tất toán'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.success,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
+                      Text(label,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text(
+                        DateFormatter.formatDateTime(record.createdAt),
+                        style: const TextStyle(fontSize: 11, color: AppColors.textHint),
                       ),
                     ],
                   ),
-                ],
-                const SizedBox(height: 12),
-                // Edit & Delete row
-                Row(
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _showEditCustomerDialog(context, customer);
-                        },
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Sửa'),
+                    Text(
+                      '$prefix${CurrencyFormatter.format(record.amount)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: color,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          final confirmed = await ConfirmDialog.show(
-                            context,
-                            title: 'Xóa khách hàng',
-                            message: 'Bạn có chắc muốn xóa "${customer.name}"?',
-                            confirmText: 'Xóa',
-                            confirmColor: AppColors.error,
-                          );
-                          if (confirmed && context.mounted) {
-                            context.read<CustomerBloc>().add(
-                              CustomerEvent.deleteCustomer(customer.id),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.delete_outline, size: 18,
-                            color: AppColors.error),
-                        label: const Text('Xóa',
-                            style: TextStyle(color: AppColors.error)),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.error),
-                        ),
-                      ),
+                    Text(
+                      'Dư: ${CurrencyFormatter.format(record.runningBalance)}',
+                      style: const TextStyle(fontSize: 10, color: AppColors.textHint),
                     ),
                   ],
                 ),
               ],
             ),
           );
-        },
-      ),
+        }),
+      ],
     );
   }
+
 
   void _showAddOptions(BuildContext context) {
     showModalBottomSheet(

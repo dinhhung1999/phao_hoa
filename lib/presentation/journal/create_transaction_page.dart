@@ -38,6 +38,10 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   String _customerType = 'khach_le'; // 'khach_le' | 'khach_quen'
   Customer? _selectedCustomer;
 
+  // Debt management for export
+  bool _isDebt = false;
+  final _paidAmountCtl = TextEditingController(text: '0');
+
   final List<_ItemEntry> _items = [];
 
   @override
@@ -56,6 +60,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     _sourceCtl.dispose();
     _noteCtl.dispose();
     _customerNameCtl.dispose();
+    _paidAmountCtl.dispose();
     for (final item in _items) {
       item.dispose();
     }
@@ -63,10 +68,16 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   }
 
   double get _totalValue {
-    return _items.fold(0.0, (sum, item) {
+    return _items.fold(0.0, (s, item) {
       final qty = _resolveQuantity(item.quantityCtl.text);
       final price = _resolvePrice(item);
-      return sum + (qty * price);
+      return s + (qty * price);
+    });
+  }
+
+  int get _totalQuantity {
+    return _items.fold(0, (s, item) {
+      return s + _resolveQuantity(item.quantityCtl.text);
     });
   }
 
@@ -172,6 +183,16 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
       customerType = 'noi_bo';
     }
 
+    // Calculate debt values
+    final bool isDebt = widget.isExport && _isDebt && _customerType == 'khach_quen' && customerId != null;
+    double paidAmount = _totalValue;
+    if (isDebt) {
+      final parsedPaid = double.tryParse(
+        _paidAmountCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
+      ) ?? 0;
+      paidAmount = parsedPaid.clamp(0, _totalValue);
+    }
+
     final transaction = entity.Transaction(
       id: '',
       type: widget.type,
@@ -179,9 +200,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
       customerName: customerName,
       customerType: customerType,
       warehouseLocation: _warehouseLocation,
-      isDebt: false,
+      isDebt: isDebt,
       totalValue: _totalValue,
-      paidAmount: _totalValue,
+      paidAmount: paidAmount,
       note: _noteCtl.text.trim().isNotEmpty ? _noteCtl.text.trim() : null,
       createdAt: now,
       createdBy: userEmail,
@@ -305,6 +326,13 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 ],
                 const SizedBox(height: 8),
 
+                // ── Debt section (export + khách quen only) ──
+                if (widget.isExport && _customerType == 'khach_quen' && _selectedCustomer != null) ...[
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  _buildDebtSection(),
+                ],
+
                 const Divider(),
                 const SizedBox(height: 8),
 
@@ -334,12 +362,12 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                         child: Column(
                           children: [
                             Icon(Icons.inventory_2_outlined,
-                                size: 40, color: AppColors.textHint),
+                                size: 40, color: AppColors.textHintOf(context)),
                             const SizedBox(height: 8),
                             Text(
                               'Chưa có sản phẩm nào\nNhấn "Thêm" để chọn sản phẩm',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textSecondary),
+                              style: TextStyle(color: AppColors.textSecondaryOf(context)),
                             ),
                           ],
                         ),
@@ -392,7 +420,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       'Đơn giá',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textSecondaryOf(context),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -409,7 +437,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                           suffixText: 'đ',
                                           suffixStyle: TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.textSecondary,
+                                            color: AppColors.textSecondaryOf(context),
                                           ),
                                         ),
                                         style: const TextStyle(fontSize: 13),
@@ -436,7 +464,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       'Số lượng',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textSecondaryOf(context),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -453,7 +481,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                           hintText: 'VD: 7*24',
                                           hintStyle: TextStyle(
                                             fontSize: 11,
-                                            color: AppColors.textHint,
+                                            color: AppColors.textHintOf(context),
                                           ),
                                         ),
                                         style: const TextStyle(fontSize: 13),
@@ -487,7 +515,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                         'Thành tiền',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: AppColors.textSecondary,
+                                          color: AppColors.textSecondaryOf(context),
                                         ),
                                       ),
                                       const SizedBox(height: 6),
@@ -518,19 +546,42 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                     color: color.withValues(alpha: 0.05),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: [
-                          const Text('TỔNG CỘNG',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text(
-                            CurrencyFormatter.format(_totalValue),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                              color: color,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Tổng số lượng',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w500, fontSize: 14)),
+                              Text(
+                                '$_totalQuantity SP',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: color,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(height: 1),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('TỔNG CỘNG',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text(
+                                CurrencyFormatter.format(_totalValue),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                  color: color,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -600,7 +651,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
         // Customer type toggle
         Row(
           children: [
-            const Icon(Icons.person_outline, size: 20, color: AppColors.textSecondary),
+            Icon(Icons.person_outline, size: 20, color: AppColors.textSecondaryOf(context)),
             const SizedBox(width: 8),
             const Text('Khách hàng', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ],
@@ -651,6 +702,95 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     );
   }
 
+  /// Build debt toggle + paid amount section
+  Widget _buildDebtSection() {
+    final debtAmount = _totalValue - (double.tryParse(
+      _paidAmountCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
+    ) ?? 0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          title: const Text(
+            'Ghi nợ',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: const Text(
+            'Khách hàng chưa thanh toán đầy đủ',
+            style: TextStyle(fontSize: 12),
+          ),
+          value: _isDebt,
+          onChanged: (v) => setState(() {
+            _isDebt = v;
+            if (!v) _paidAmountCtl.text = '0';
+          }),
+          secondary: Icon(
+            Icons.account_balance_wallet_outlined,
+            color: _isDebt ? AppColors.debtActive : AppColors.textSecondary,
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        if (_isDebt) ...[
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _paidAmountCtl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Số tiền đã thanh toán (₫)',
+              prefixIcon: Icon(Icons.payments_outlined),
+              hintText: '0 = nợ toàn bộ',
+            ),
+            onChanged: (_) => setState(() {}),
+            validator: (v) {
+              if (!_isDebt) return null;
+              final parsed = double.tryParse(
+                (v ?? '').replaceAll(RegExp(r'[^\d]'), ''),
+              );
+              if (parsed == null || parsed < 0) {
+                return 'Số tiền không hợp lệ';
+              }
+              if (parsed > _totalValue) {
+                return 'Không thể lớn hơn tổng cộng';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          Card(
+            color: AppColors.debtActive.withValues(alpha: 0.06),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          size: 18, color: AppColors.debtActive),
+                      SizedBox(width: 8),
+                      Text('Số tiền ghi nợ',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  Text(
+                    CurrencyFormatter.format(debtAmount.clamp(0, _totalValue)),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.debtActive,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
   /// Build dropdown to select from existing customers
   Widget _buildCustomerDropdown() {
     return BlocBuilder<CustomerBloc, CustomerState>(
@@ -667,7 +807,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                   child: Row(
                     children: [
                       Icon(Icons.info_outline,
-                          size: 18, color: AppColors.textSecondary),
+                          size: 18, color: AppColors.textSecondaryOf(context)),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
@@ -683,15 +823,21 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
             // Show all customers (not just khach_quen) for flexibility
             final allCustomers = loaded.customers;
             return DropdownButtonFormField<Customer>(
-              initialValue: _selectedCustomer,
+              value: _selectedCustomer,
+              isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Chọn khách hàng *',
                 prefixIcon: Icon(Icons.person),
               ),
               items: allCustomers.map((c) {
+                final label = '${c.name}${c.phone != null ? ' (${c.phone})' : ''}';
                 return DropdownMenuItem(
                   value: c,
-                  child: Text('${c.name}${c.phone != null ? ' (${c.phone})' : ''}'),
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 );
               }).toList(),
               onChanged: (v) => setState(() => _selectedCustomer = v),
@@ -846,6 +992,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                   );
                 },
                 error: (e) => Center(child: Text(e.message)),
+                priceHistoryLoaded: (_) => const Center(
+                    child: CircularProgressIndicator.adaptive()),
               );
             },
           );

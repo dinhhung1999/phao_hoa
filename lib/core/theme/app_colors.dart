@@ -32,7 +32,11 @@ class AppColors {
   static const Color backgroundDark = Color(0xFF121212);
   static const Color cardDark = Color(0xFF1E1E1E);
 
-  // Text - Light
+  // ─── Theme-aware text colors ───
+  // These static values are kept for backward compatibility,
+  // but prefer using the of(context) methods below for dark mode support.
+
+  // Text - Light (legacy, used as fallback)
   static const Color textPrimary = Color(0xFF212121);
   static const Color textSecondary = Color(0xFF757575);
   static const Color textHint = Color(0xFFBDBDBD);
@@ -40,9 +44,46 @@ class AppColors {
   // Text - Dark
   static const Color textPrimaryDark = Color(0xFFFAFAFA);
   static const Color textSecondaryDark = Color(0xFFB0B0B0);
+  static const Color textHintDark = Color(0xFF6B6B6B);
 
   // Debt status
   static const Color debtActive = Color(0xFFE53935);
   static const Color debtPaid = Color(0xFF4CAF50);
   static const Color debtPartial = Color(0xFFFF9800);
+
+  // ─── Theme-aware color getters ───
+  /// Get the appropriate text primary color for current theme
+  static Color textPrimaryOf(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? textPrimaryDark
+        : textPrimary;
+  }
+
+  /// Get the appropriate text secondary color for current theme
+  static Color textSecondaryOf(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? textSecondaryDark
+        : textSecondary;
+  }
+
+  /// Get the appropriate text hint color for current theme
+  static Color textHintOf(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? textHintDark
+        : textHint;
+  }
+
+  /// Get the appropriate input fill color for current theme
+  static Color inputFillOf(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF2C2C2C)
+        : inputFill;
+  }
+
+  /// Get the appropriate divider color for current theme
+  static Color dividerOf(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF3A3A3A)
+        : divider;
+  }
 }

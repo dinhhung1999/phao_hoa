@@ -15,8 +15,10 @@ abstract class TransactionModel with _$TransactionModel {
     @JsonKey(name: 'customer_type') required String customerType,
     @JsonKey(name: 'warehouse_location') required String warehouseLocation,
     @JsonKey(name: 'is_debt') @Default(false) bool isDebt,
+    @JsonKey(name: 'total_quantity') @Default(0) int totalQuantity,
     @JsonKey(name: 'total_value') required double totalValue,
     @JsonKey(name: 'paid_amount') required double paidAmount,
+    @JsonKey(name: 'items_summary') @Default([]) List<Map<String, dynamic>> itemsSummary,
     String? note,
     @JsonKey(name: 'created_at', fromJson: timestampFromJson, toJson: timestampToJson)
     required DateTime createdAt,

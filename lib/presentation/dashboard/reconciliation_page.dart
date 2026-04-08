@@ -63,15 +63,15 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
 
   Widget _buildReconciliation(List<WarehouseStock> stocks) {
     if (stocks.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.inventory_2_outlined,
-                size: 64, color: AppColors.textHint),
+                size: 64, color: AppColors.textHintOf(context)),
             SizedBox(height: 12),
             Text('Chưa có dữ liệu tồn kho để đối soát',
-                style: TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(color: AppColors.textSecondaryOf(context))),
           ],
         ),
       );
@@ -144,13 +144,13 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
             children: [
               const Icon(Icons.warehouse_outlined,
                   size: 18, color: AppColors.info),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'Kho:',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondaryOf(context),
                 ),
               ),
               const SizedBox(width: 8),
@@ -206,16 +206,16 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                 color: AppColors.info.withValues(alpha: 0.2),
               ),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, color: AppColors.info, size: 20),
-                SizedBox(width: 10),
+                const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Nhập số lượng thực tế kiểm đếm vào ô bên phải, '
                     'sau đó nhấn "So sánh" để xem chênh lệch.',
                     style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                        TextStyle(color: AppColors.textSecondaryOf(context), fontSize: 13),
                   ),
                 ),
               ],
@@ -390,12 +390,12 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                   const AlwaysStoppedAnimation<Color>(AppColors.success),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             '$matchedCount / $totalItems vị trí đã kiểm khớp',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppColors.textSecondary,
+              color: AppColors.textSecondaryOf(context),
             ),
           ),
         ],
@@ -466,13 +466,13 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
             ),
             Text(
               'Tổng hệ thống: ${stock.totalQuantity}',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(
+                  color: AppColors.textSecondaryOf(context), fontSize: 12),
             ),
             const SizedBox(height: 12),
 
             // Column headers
-            const Row(
+            Row(
               children: [
                 SizedBox(
                     width: 70,
@@ -480,14 +480,14 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary))),
+                            color: AppColors.textSecondaryOf(context)))),
                 SizedBox(
                     width: 50,
                     child: Text('Hệ thống',
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary),
+                            color: AppColors.textSecondaryOf(context)),
                         textAlign: TextAlign.center)),
                 SizedBox(width: 24), // arrow space
                 SizedBox(
@@ -496,14 +496,14 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary),
+                            color: AppColors.textSecondaryOf(context)),
                         textAlign: TextAlign.center)),
                 Expanded(
                     child: Text('Kết quả',
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary),
+                            color: AppColors.textSecondaryOf(context)),
                         textAlign: TextAlign.center)),
               ],
             ),
@@ -549,10 +549,10 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                         ),
                       ),
                     ),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 4),
                       child: Icon(Icons.arrow_forward,
-                          size: 14, color: AppColors.textHint),
+                          size: 14, color: AppColors.textHintOf(context)),
                     ),
                     // Actual qty input
                     SizedBox(
@@ -565,7 +565,7 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                           fontWeight: FontWeight.w600,
                           color: hasDiscrepancy
                               ? AppColors.error
-                              : AppColors.textPrimary,
+                              : AppColors.textPrimaryOf(context),
                         ),
                         decoration: InputDecoration(
                           isDense: true,
@@ -695,7 +695,7 @@ class _WarehouseChip extends StatelessWidget {
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             color:
-                selected ? AppColors.primary : AppColors.textSecondary,
+                selected ? AppColors.primary : AppColors.textSecondaryOf(context),
           ),
         ),
       ),
@@ -733,9 +733,9 @@ class _StatItem extends StatelessWidget {
           ),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppColors.textSecondary,
+              color: AppColors.textSecondaryOf(context),
             ),
           ),
         ],

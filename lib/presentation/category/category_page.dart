@@ -64,7 +64,7 @@ class _CategoryPageState extends State<CategoryPage> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_category',
         onPressed: () async {
-          final result = await Navigator.of(context).push<bool>(
+          await Navigator.of(context).push<bool>(
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
                 value: context.read<CategoryBloc>(),
@@ -72,7 +72,7 @@ class _CategoryPageState extends State<CategoryPage> {
               ),
             ),
           );
-          if (result == true && context.mounted) {
+          if (context.mounted) {
             context
                 .read<CategoryBloc>()
                 .add(const CategoryEvent.refreshProducts());
@@ -102,6 +102,7 @@ class _CategoryPageState extends State<CategoryPage> {
               loaded.isLoadingMore,
             ),
             actionSuccess: (_) => const AppLoadingIndicator(),
+            priceHistoryLoaded: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
               onRetry: () => context
@@ -136,16 +137,16 @@ class _CategoryPageState extends State<CategoryPage> {
             child: filtered.isEmpty
                 ? ListView(
                     // Needed for RefreshIndicator to work on empty
-                    children: const [
+                    children: [
                       SizedBox(height: 120),
                       Center(
                         child: Column(
                           children: [
                             Icon(Icons.inventory_2_outlined,
-                                size: 64, color: AppColors.textHint),
+                                size: 64, color: AppColors.textHintOf(context)),
                             SizedBox(height: 12),
                             Text('Không tìm thấy sản phẩm',
-                                style: TextStyle(color: AppColors.textSecondary)),
+                                style: TextStyle(color: AppColors.textSecondaryOf(context))),
                           ],
                         ),
                       ),
@@ -227,15 +228,15 @@ class _CategoryPageState extends State<CategoryPage> {
             ),
             Text(
               CurrencyFormatter.format(product.importPrice),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryOf(context),
               ),
             ),
           ],
         ),
         onTap: () async {
-          final result = await Navigator.of(context).push<bool>(
+          await Navigator.of(context).push<bool>(
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
                 value: context.read<CategoryBloc>(),
@@ -243,7 +244,7 @@ class _CategoryPageState extends State<CategoryPage> {
               ),
             ),
           );
-          if (result == true && context.mounted) {
+          if (context.mounted) {
             context
                 .read<CategoryBloc>()
                 .add(const CategoryEvent.refreshProducts());

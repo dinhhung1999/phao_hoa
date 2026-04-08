@@ -73,4 +73,82 @@ class ProductRemoteDatasource {
 
     return (models, lastDoc);
   }
+
+  // ── Price History ──
+
+  /// Add a price record to the product's price_history sub-collection
+  Future<void> addPriceRecord({
+    required String productId,
+    required double importPrice,
+    required double exportPrice,
+    String? updatedBy,
+  }) async {
+    await _collection
+        .doc(productId)
+        .collection(FirestorePaths.priceHistory)
+        .add({
+      'import_price': importPrice,
+      'export_price': exportPrice,
+      'updated_by': updatedBy,
+      'recorded_at': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Get price history for a product, ordered by date
+  Future<List<Map<String, dynamic>>> getPriceHistory(
+    String productId, {
+    int? limit,
+  }) async {
+    Query query = _collection
+        .doc(productId)
+        .collection(FirestorePaths.priceHistory)
+        .orderBy('recorded_at', descending: false);
+
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
+    final snapshot = await query.get();
+    return snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return {
+        'id': doc.id,
+        'product_id': productId,
+        ...data,
+      };
+    }).toList();
+  }
+
+  /// Update product price and record price history atomically
+  Future<void> updateProductPrice({
+    required String productId,
+    required double newImportPrice,
+    required double newExportPrice,
+    String? updatedBy,
+  }) async {
+    final batch = _firestore.batch();
+
+    // Update product prices
+    batch.update(_collection.doc(productId), {
+      'import_price': newImportPrice,
+      'export_price': newExportPrice,
+      'updated_at': FieldValue.serverTimestamp(),
+      'updated_by': updatedBy,
+    });
+
+    // Record price history
+    final priceRef = _collection
+        .doc(productId)
+        .collection(FirestorePaths.priceHistory)
+        .doc();
+    batch.set(priceRef, {
+      'import_price': newImportPrice,
+      'export_price': newExportPrice,
+      'updated_by': updatedBy,
+      'recorded_at': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
 }
+

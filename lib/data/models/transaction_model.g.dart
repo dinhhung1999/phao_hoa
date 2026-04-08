@@ -15,8 +15,14 @@ _TransactionModel _$TransactionModelFromJson(Map<String, dynamic> json) =>
       customerType: json['customer_type'] as String,
       warehouseLocation: json['warehouse_location'] as String,
       isDebt: json['is_debt'] as bool? ?? false,
+      totalQuantity: (json['total_quantity'] as num?)?.toInt() ?? 0,
       totalValue: (json['total_value'] as num).toDouble(),
       paidAmount: (json['paid_amount'] as num).toDouble(),
+      itemsSummary:
+          (json['items_summary'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          const [],
       note: json['note'] as String?,
       createdAt: timestampFromJson(json['created_at']),
       createdBy: json['created_by'] as String,
@@ -31,8 +37,10 @@ Map<String, dynamic> _$TransactionModelToJson(_TransactionModel instance) =>
       'customer_type': instance.customerType,
       'warehouse_location': instance.warehouseLocation,
       'is_debt': instance.isDebt,
+      'total_quantity': instance.totalQuantity,
       'total_value': instance.totalValue,
       'paid_amount': instance.paidAmount,
+      'items_summary': instance.itemsSummary,
       'note': instance.note,
       'created_at': timestampToJson(instance.createdAt),
       'created_by': instance.createdBy,
