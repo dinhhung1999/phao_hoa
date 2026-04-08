@@ -103,9 +103,9 @@ class _DailyReportPageState extends State<DailyReportPage> {
                         if (isToday)
                           Text(
                             DateFormatter.formatDate(_selectedDate),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryOf(context),
                             ),
                           ),
                       ],
@@ -137,6 +137,10 @@ class _DailyReportPageState extends State<DailyReportPage> {
                   paginatedHistoryLoaded: (loaded) =>
                       _buildReport(loaded.transactions),
                   created: (_) => const AppLoadingIndicator(),
+                  debtUpdated: (_) {
+                    _loadReport();
+                    return const AppLoadingIndicator();
+                  },
                   error: (e) => AppErrorWidget(
                     message: e.message,
                     onRetry: _loadReport,
@@ -161,6 +165,10 @@ class _DailyReportPageState extends State<DailyReportPage> {
         imports.fold<double>(0, (sum, t) => sum + t.totalValue);
     final totalExport =
         exports.fold<double>(0, (sum, t) => sum + t.totalValue);
+    final totalImportQty =
+        imports.fold<int>(0, (sum, t) => sum + t.totalQuantity);
+    final totalExportQty =
+        exports.fold<int>(0, (sum, t) => sum + t.totalQuantity);
     final totalDebt = transactions
         .where((t) => t.isDebt)
         .fold<double>(0, (sum, t) => sum + t.unpaidAmount);
@@ -170,12 +178,12 @@ class _DailyReportPageState extends State<DailyReportPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.inbox_outlined,
-                size: 64, color: AppColors.textHint),
-            const SizedBox(height: 12),
+            Icon(Icons.inbox_outlined,
+                size: 64, color: AppColors.textHintOf(context)),
+            SizedBox(height: 12),
             Text(
               'Không có giao dịch ngày ${DateFormatter.formatDate(_selectedDate)}',
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondaryOf(context)),
             ),
           ],
         ),
@@ -193,6 +201,7 @@ class _DailyReportPageState extends State<DailyReportPage> {
                 title: 'Tổng nhập',
                 value: totalImport,
                 count: imports.length,
+                totalQuantity: totalImportQty,
                 color: AppColors.importColor,
                 icon: Icons.arrow_downward,
               ),
@@ -203,6 +212,7 @@ class _DailyReportPageState extends State<DailyReportPage> {
                 title: 'Tổng xuất',
                 value: totalExport,
                 count: exports.length,
+                totalQuantity: totalExportQty,
                 color: AppColors.exportColor,
                 icon: Icons.arrow_upward,
               ),
@@ -221,9 +231,9 @@ class _DailyReportPageState extends State<DailyReportPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Chênh lệch',
+                      Text('Chênh lệch',
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 13)),
+                              color: AppColors.textSecondaryOf(context), fontSize: 13)),
                       const SizedBox(height: 4),
                       Text(
                         CurrencyFormatter.format(totalExport - totalImport),
@@ -249,9 +259,9 @@ class _DailyReportPageState extends State<DailyReportPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Ghi nợ',
+                        Text('Ghi nợ',
                             style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 13)),
+                                color: AppColors.textSecondaryOf(context), fontSize: 13)),
                         const SizedBox(height: 4),
                         Text(
                           CurrencyFormatter.format(totalDebt),
@@ -320,6 +330,7 @@ class _SummaryCard extends StatelessWidget {
   final String title;
   final double value;
   final int count;
+  final int totalQuantity;
   final Color color;
   final IconData icon;
 
@@ -327,6 +338,7 @@ class _SummaryCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.count,
+    required this.totalQuantity,
     required this.color,
     required this.icon,
   });
@@ -362,12 +374,12 @@ class _SummaryCard extends StatelessWidget {
                 color: color,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
-              '$count phiếu',
-              style: const TextStyle(
+              '$count phiếu${totalQuantity > 0 ? ' • $totalQuantity SP' : ''}',
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryOf(context),
               ),
             ),
           ],
@@ -405,7 +417,7 @@ class _TransactionTile extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
         ),
         subtitle: Text(
-          '${transaction.warehouseLocation} • ${DateFormatter.formatTime(transaction.createdAt)}',
+          '${transaction.warehouseLocation} • ${DateFormatter.formatTime(transaction.createdAt)}${transaction.totalQuantity > 0 ? ' • ${transaction.totalQuantity} SP' : ''}',
           style: const TextStyle(fontSize: 12),
         ),
         trailing: Column(

@@ -29,6 +29,7 @@ class _JournalPageState extends State<JournalPage> {
   String? _filterType; // null = all, 'nhap', 'xuat'
   String? _filterWarehouse;
   DateTimeRange? _filterDateRange;
+  bool _filterDebtOnly = false;
 
   @override
   void initState() {
@@ -71,6 +72,7 @@ class _JournalPageState extends State<JournalPage> {
       _filterType = null;
       _filterWarehouse = null;
       _filterDateRange = null;
+      _filterDebtOnly = false;
     });
     context
         .read<TransactionBloc>()
@@ -80,7 +82,8 @@ class _JournalPageState extends State<JournalPage> {
   bool get _hasActiveFilters =>
       _filterType != null ||
       _filterWarehouse != null ||
-      _filterDateRange != null;
+      _filterDateRange != null ||
+      _filterDebtOnly;
 
   void _onTransactionCreated() {
     // Reload journal history
@@ -242,8 +245,8 @@ class _JournalPageState extends State<JournalPage> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.date_range,
-                            size: 18, color: AppColors.textSecondary),
+                        Icon(Icons.date_range,
+                            size: 18, color: AppColors.textSecondaryOf(context)),
                         const SizedBox(width: 8),
                         Text(
                           _filterDateRange != null
@@ -262,71 +265,87 @@ class _JournalPageState extends State<JournalPage> {
                 ),
                 const SizedBox(height: 8),
 
-                // Type filter chips
-                Row(
-                  children: [
-                    _FilterChip(
-                      label: 'Tất cả',
-                      selected: _filterType == null,
-                      onTap: () {
-                        setState(() => _filterType = null);
-                        _applyFilters();
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Nhập kho',
-                      selected: _filterType == 'nhap',
-                      color: AppColors.importColor,
-                      onTap: () {
-                        setState(() => _filterType = 'nhap');
-                        _applyFilters();
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Xuất kho',
-                      selected: _filterType == 'xuat',
-                      color: AppColors.exportColor,
-                      onTap: () {
-                        setState(() => _filterType = 'xuat');
-                        _applyFilters();
-                      },
-                    ),
-                    const Spacer(),
-                    // Warehouse dropdown
-                    SizedBox(
-                      width: 100,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _filterWarehouse,
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
-                          border: OutlineInputBorder(),
-                          hintText: 'Kho',
-                        ),
-                        style: const TextStyle(
-                            fontSize: 13, color: AppColors.textPrimary),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('Tất cả', style: TextStyle(fontSize: 13)),
-                          ),
-                          ...AppConstants.warehouseLocationNames.map(
-                            (name) => DropdownMenuItem(
-                              value: name,
-                              child: Text(name, style: const TextStyle(fontSize: 13)),
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          setState(() => _filterWarehouse = v);
+                // Type filter chips + warehouse dropdown
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: 'Tất cả',
+                        selected: _filterType == null && !_filterDebtOnly,
+                        onTap: () {
+                          setState(() {
+                            _filterType = null;
+                            _filterDebtOnly = false;
+                          });
                           _applyFilters();
                         },
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Nhập kho',
+                        selected: _filterType == 'nhap',
+                        color: AppColors.importColor,
+                        onTap: () {
+                          setState(() => _filterType = 'nhap');
+                          _applyFilters();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Xuất kho',
+                        selected: _filterType == 'xuat',
+                        color: AppColors.exportColor,
+                        onTap: () {
+                          setState(() => _filterType = 'xuat');
+                          _applyFilters();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Ghi nợ',
+                        selected: _filterDebtOnly,
+                        color: AppColors.debtActive,
+                        onTap: () {
+                          setState(() => _filterDebtOnly = !_filterDebtOnly);
+                          _applyFilters();
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      // Warehouse dropdown
+                      SizedBox(
+                        width: 110,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _filterWarehouse,
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            border: OutlineInputBorder(),
+                            hintText: 'Kho',
+                          ),
+                          style: TextStyle(
+                              fontSize: 13, color: AppColors.textPrimaryOf(context)),
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text('Tất cả', style: TextStyle(fontSize: 13)),
+                            ),
+                            ...AppConstants.warehouseLocationNames.map(
+                              (name) => DropdownMenuItem(
+                                value: name,
+                                child: Text(name, style: const TextStyle(fontSize: 13)),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            setState(() => _filterWarehouse = v);
+                            _applyFilters();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -350,6 +369,13 @@ class _JournalPageState extends State<JournalPage> {
                   loaded.transactions, loaded.hasMore, loaded.isLoadingMore,
                 ),
                 created: (_) => const AppLoadingIndicator(),
+                debtUpdated: (_) {
+                  // Refresh list after debt update
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _onTransactionCreated();
+                  });
+                  return const AppLoadingIndicator();
+                },
                 error: (e) => AppErrorWidget(
                   message: e.message,
                   onRetry: () => context
@@ -367,6 +393,12 @@ class _JournalPageState extends State<JournalPage> {
   Widget _buildTxList(
     List<dynamic> transactions, bool hasMore, bool isLoadingMore,
   ) {
+    // Apply client-side debt filter
+    var filteredTx = transactions;
+    if (_filterDebtOnly) {
+      filteredTx = transactions.where((tx) => tx.isDebt).toList();
+    }
+
     return RefreshIndicator(
       onRefresh: () async {
         context.read<TransactionBloc>().add(TransactionEvent.refreshHistory(
@@ -376,7 +408,7 @@ class _JournalPageState extends State<JournalPage> {
           warehouseLocation: _filterWarehouse,
         ));
       },
-      child: transactions.isEmpty
+      child: filteredTx.isEmpty
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: const [
@@ -387,10 +419,10 @@ class _JournalPageState extends State<JournalPage> {
           : ListView.separated(
               controller: _scrollCtl,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: transactions.length + (hasMore ? 1 : 0),
+              itemCount: filteredTx.length + (hasMore ? 1 : 0),
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                if (index >= transactions.length) {
+                if (index >= filteredTx.length) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
@@ -398,69 +430,135 @@ class _JournalPageState extends State<JournalPage> {
                     ),
                   );
                 }
-                final tx = transactions[index];
+                final tx = filteredTx[index];
                 final isExport = tx.type == 'xuat';
                 return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: isExport
-                          ? AppColors.exportColor.withValues(alpha: 0.1)
-                          : AppColors.importColor.withValues(alpha: 0.1),
-                      child: Icon(
-                        isExport
-                            ? Icons.arrow_upward
-                            : Icons.arrow_downward,
-                        color: isExport
-                            ? AppColors.exportColor
-                            : AppColors.importColor,
-                      ),
-                    ),
-                    title: Text(tx.customerName),
-                    subtitle: Text(
-                      DateFormatter.formatDateTime(tx.createdAt),
-                    ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          CurrencyFormatter.format(tx.totalValue),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isExport
-                                ? AppColors.exportColor
-                                : AppColors.importColor,
-                          ),
-                        ),
-                        if (tx.isDebt)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.debtActive
-                                  .withValues(alpha: 0.1),
-                              borderRadius:
-                                  BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'GHI NỢ',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.debtActive,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push(
+                  margin: const EdgeInsets.only(bottom: 2),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async {
+                      final result = await Navigator.of(context).push<bool>(
                         MaterialPageRoute(
-                          builder: (_) => TransactionDetailPage(transaction: tx),
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<TransactionBloc>(),
+                            child: TransactionDetailPage(transaction: tx),
+                          ),
                         ),
                       );
+                      if (result == true && context.mounted) {
+                        _onTransactionCreated();
+                      }
                     },
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header: icon + customer + total
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: isExport
+                                    ? AppColors.exportColor.withValues(alpha: 0.1)
+                                    : AppColors.importColor.withValues(alpha: 0.1),
+                                child: Icon(
+                                  isExport ? Icons.arrow_upward : Icons.arrow_downward,
+                                  size: 16,
+                                  color: isExport ? AppColors.exportColor : AppColors.importColor,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.customerName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      DateFormatter.formatDateTime(tx.createdAt),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondaryOf(context),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    CurrencyFormatter.format(tx.totalValue),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: isExport ? AppColors.exportColor : AppColors.importColor,
+                                    ),
+                                  ),
+                                  if (tx.isDebt)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 2),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.debtActive.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'GHI NỢ',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.debtActive,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          // Items list
+                          if (tx.itemsSummary.isNotEmpty) ...[
+                            const Divider(height: 16),
+                            ...tx.itemsSummary.map((item) {
+                              final name = item['name'] ?? '';
+                              final qty = item['qty'] ?? 0;
+                              final price = (item['price'] ?? 0).toDouble();
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Row(
+                                  children: [
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.circle, size: 5,
+                                      color: isExport ? AppColors.exportColor : AppColors.importColor),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '$name',
+                                        style: const TextStyle(fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      '$qty × ${CurrencyFormatter.format(price)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondaryOf(context),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },

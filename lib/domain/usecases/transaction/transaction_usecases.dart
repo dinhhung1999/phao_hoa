@@ -94,3 +94,26 @@ class GetTransactionHistoryPaginated {
     );
   }
 }
+
+/// Update debt payment for a transaction
+class UpdateDebtPayment {
+  final TransactionRepository _repository;
+
+  UpdateDebtPayment(this._repository);
+
+  Future<Either<Failure, void>> call({
+    required String transactionId,
+    required double newPaidAmount,
+    required double totalValue,
+    String? customerId,
+    required double previousPaidAmount,
+  }) {
+    return _repository.updateDebtPayment(
+      transactionId: transactionId,
+      newPaidAmount: newPaidAmount,
+      totalValue: totalValue,
+      customerId: customerId,
+      previousPaidAmount: previousPaidAmount,
+    );
+  }
+}

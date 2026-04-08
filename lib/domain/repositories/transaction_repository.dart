@@ -43,4 +43,13 @@ abstract class TransactionRepository {
     int limit = 20,
     dynamic startAfter,
   });
+
+  /// Update debt payment for a transaction
+  Future<Either<Failure, void>> updateDebtPayment({
+    required String transactionId,
+    required double newPaidAmount,
+    required double totalValue,
+    String? customerId,
+    required double previousPaidAmount,
+  });
 }

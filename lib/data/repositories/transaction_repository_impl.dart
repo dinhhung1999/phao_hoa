@@ -146,6 +146,28 @@ class TransactionRepositoryImpl implements TransactionRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, void>> updateDebtPayment({
+    required String transactionId,
+    required double newPaidAmount,
+    required double totalValue,
+    String? customerId,
+    required double previousPaidAmount,
+  }) async {
+    try {
+      await _datasource.updateDebtPayment(
+        transactionId: transactionId,
+        newPaidAmount: newPaidAmount,
+        totalValue: totalValue,
+        customerId: customerId,
+        previousPaidAmount: previousPaidAmount,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(FirestoreFailure(_friendlyError(e)));
+    }
+  }
+
   entity.Transaction _txToEntity(TransactionModel m) => entity.Transaction(
     id: m.id,
     type: m.type,
@@ -154,8 +176,10 @@ class TransactionRepositoryImpl implements TransactionRepository {
     customerType: m.customerType,
     warehouseLocation: m.warehouseLocation,
     isDebt: m.isDebt,
+    totalQuantity: m.totalQuantity,
     totalValue: m.totalValue,
     paidAmount: m.paidAmount,
+    itemsSummary: m.itemsSummary,
     note: m.note,
     createdAt: m.createdAt,
     createdBy: m.createdBy,
@@ -169,8 +193,10 @@ class TransactionRepositoryImpl implements TransactionRepository {
     customerType: e.customerType,
     warehouseLocation: e.warehouseLocation,
     isDebt: e.isDebt,
+    totalQuantity: e.totalQuantity,
     totalValue: e.totalValue,
     paidAmount: e.paidAmount,
+    itemsSummary: e.itemsSummary,
     note: e.note,
     createdAt: e.createdAt,
     createdBy: e.createdBy,
@@ -210,8 +236,10 @@ extension TransactionCopyWith on entity.Transaction {
       customerType: customerType,
       warehouseLocation: warehouseLocation,
       isDebt: isDebt,
+      totalQuantity: totalQuantity,
       totalValue: totalValue,
       paidAmount: paidAmount,
+      itemsSummary: itemsSummary,
       note: note,
       createdAt: createdAt,
       createdBy: createdBy,

@@ -80,6 +80,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   paginatedHistoryLoaded: (loaded) =>
                       _buildCharts(loaded.transactions),
                   created: (_) => const SizedBox(),
+                  debtUpdated: (_) {
+                    _loadData();
+                    return const Center(
+                        child: CircularProgressIndicator.adaptive());
+                  },
                   error: (e) => Center(child: Text(e.message)),
                 );
               },
@@ -97,15 +102,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   Widget _buildCharts(List<entity.Transaction> transactions) {
     if (transactions.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.bar_chart_outlined, size: 64,
-                color: AppColors.textHint),
+                color: AppColors.textHintOf(context)),
             SizedBox(height: 12),
             Text('Chưa có giao dịch trong kỳ',
-                style: TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(color: AppColors.textSecondaryOf(context))),
           ],
         ),
       );
@@ -162,7 +167,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         // BAR CHART — Daily Import vs Export
         Text('Nhập / Xuất theo ngày',
@@ -174,7 +179,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           height: 220,
           child: _buildBarChart(dailyData),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         // PIE CHART — Import vs Export ratio
         Text('Tỷ lệ Nhập / Xuất',
@@ -186,7 +191,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           height: 200,
           child: _buildPieChart(totalImport, totalExport),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         // TOP PRODUCTS
         Text('Sản phẩm giao dịch nhiều nhất',
@@ -391,15 +396,22 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget _buildTopProducts(List<entity.Transaction> transactions) {
-    // Aggregate by product
+    // Aggregate by product using itemsSummary (denormalized data)
+    // since tx.items is not loaded during history queries
     final productMap = <String, double>{};
     for (final tx in transactions) {
-      for (final item in tx.items) {
-        productMap.update(
-          item.productName,
-          (v) => v + item.subtotal,
-          ifAbsent: () => item.subtotal,
-        );
+      for (final item in tx.itemsSummary) {
+        final name = (item['name'] ?? '') as String;
+        final qty = (item['qty'] ?? 0);
+        final price = (item['price'] ?? 0).toDouble();
+        final subtotal = qty * price;
+        if (name.isNotEmpty) {
+          productMap.update(
+            name,
+            (v) => v + subtotal,
+            ifAbsent: () => subtotal,
+          );
+        }
       }
     }
 

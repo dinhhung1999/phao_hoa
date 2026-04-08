@@ -67,6 +67,13 @@ class TransactionRemoteDatasource {
 
     // 1. Create transaction document
     final txData = transaction.toJson()..remove('id');
+    // Store total quantity and items summary for quick display in list
+    txData['total_quantity'] = items.fold<int>(0, (s, item) => s + item.quantity);
+    txData['items_summary'] = items.map((item) => {
+      'name': item.productName,
+      'qty': item.quantity,
+      'price': item.unitPriceAtTime,
+    }).toList();
     batch.set(txDocRef, txData);
 
     // 2. Create item sub-documents with price snapshots
@@ -134,6 +141,13 @@ class TransactionRemoteDatasource {
 
     // 1. Create transaction
     final txData = transaction.toJson()..remove('id');
+    // Store total quantity and items summary for quick display in list
+    txData['total_quantity'] = items.fold<int>(0, (s, item) => s + item.quantity);
+    txData['items_summary'] = items.map((item) => {
+      'name': item.productName,
+      'qty': item.quantity,
+      'price': item.unitPriceAtTime,
+    }).toList();
     batch.set(txDocRef, txData);
 
     // 2. Create items
@@ -167,6 +181,9 @@ class TransactionRemoteDatasource {
   }
 
   /// Get transaction history with optional filters
+  /// Note: type and warehouse filters are applied client-side to avoid
+  /// needing Firestore composite indexes (which require manual deployment).
+  /// Only date range uses Firestore where clauses (same field as orderBy).
   Future<List<TransactionModel>> getTransactionHistory({
     DateTime? startDate,
     DateTime? endDate,
@@ -175,12 +192,7 @@ class TransactionRemoteDatasource {
   }) async {
     Query query = _txCollection.orderBy('created_at', descending: true);
 
-    if (type != null) {
-      query = query.where('type', isEqualTo: type);
-    }
-    if (warehouseLocation != null) {
-      query = query.where('warehouse_location', isEqualTo: warehouseLocation);
-    }
+    // Date range filters work with single-field index on created_at
     if (startDate != null) {
       query = query.where('created_at', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
     }
@@ -189,9 +201,20 @@ class TransactionRemoteDatasource {
     }
 
     final snapshot = await query.get();
-    return snapshot.docs
+    var models = snapshot.docs
         .map((d) => TransactionModel.fromFirestore(d))
         .toList();
+
+    // Client-side filtering for type and warehouse
+    // to avoid Firestore composite index requirement
+    if (type != null) {
+      models = models.where((m) => m.type == type).toList();
+    }
+    if (warehouseLocation != null) {
+      models = models.where((m) => m.warehouseLocation == warehouseLocation).toList();
+    }
+
+    return models;
   }
 
   /// Get transaction with items
@@ -213,6 +236,9 @@ class TransactionRemoteDatasource {
   }
 
   /// Get transaction history with cursor-based pagination
+  /// Note: type and warehouse filters are applied client-side to avoid
+  /// needing Firestore composite indexes. Fetches extra documents when
+  /// client-side filtering is active to compensate for filtered-out items.
   Future<(List<TransactionModel>, DocumentSnapshot?)> getTransactionHistoryPaginated({
     DateTime? startDate,
     DateTime? endDate,
@@ -223,12 +249,7 @@ class TransactionRemoteDatasource {
   }) async {
     Query query = _txCollection.orderBy('created_at', descending: true);
 
-    if (type != null) {
-      query = query.where('type', isEqualTo: type);
-    }
-    if (warehouseLocation != null) {
-      query = query.where('warehouse_location', isEqualTo: warehouseLocation);
-    }
+    // Date range filters work with single-field index on created_at
     if (startDate != null) {
       query = query.where('created_at', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
     }
@@ -236,18 +257,66 @@ class TransactionRemoteDatasource {
       query = query.where('created_at', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
     }
 
-    query = query.limit(limit);
-
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
 
+    // When client-side filtering is needed, fetch more documents
+    // to compensate for items that will be filtered out
+    final needsClientFilter = type != null || warehouseLocation != null;
+    final fetchLimit = needsClientFilter ? limit * 5 : limit;
+    query = query.limit(fetchLimit);
+
     final snapshot = await query.get();
-    final models = snapshot.docs
+    var models = snapshot.docs
         .map((d) => TransactionModel.fromFirestore(d))
         .toList();
+
+    // Client-side filtering for type and warehouse
+    // to avoid Firestore composite index requirement
+    if (type != null) {
+      models = models.where((m) => m.type == type).toList();
+    }
+    if (warehouseLocation != null) {
+      models = models.where((m) => m.warehouseLocation == warehouseLocation).toList();
+    }
+
     final lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
 
     return (models, lastDoc);
+  }
+
+  /// Update debt payment for a transaction
+  /// Updates paid_amount, recalculates is_debt, and adjusts customer total_debt
+  Future<void> updateDebtPayment({
+    required String transactionId,
+    required double newPaidAmount,
+    required double totalValue,
+    String? customerId,
+    required double previousPaidAmount,
+  }) async {
+    final batch = _firestore.batch();
+    final txRef = _txCollection.doc(transactionId);
+
+    final isFullyPaid = newPaidAmount >= totalValue;
+
+    // 1. Update transaction
+    batch.update(txRef, {
+      'paid_amount': newPaidAmount,
+      'is_debt': !isFullyPaid,
+    });
+
+    // 2. Update customer total_debt if this is a customer order
+    if (customerId != null && customerId.isNotEmpty) {
+      final debtDiff = previousPaidAmount - newPaidAmount; // positive = more debt
+      if (debtDiff != 0) {
+        batch.update(_custCollection.doc(customerId), {
+          'total_debt': FieldValue.increment(debtDiff),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    await _retryOperation(() => batch.commit());
   }
 }

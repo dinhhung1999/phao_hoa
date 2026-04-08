@@ -68,10 +68,10 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.warehouse_outlined,
-                size: 64, color: AppColors.textHint),
-            const SizedBox(height: 12),
-            const Text('Chưa có kho hàng',
-                style: TextStyle(color: AppColors.textSecondary)),
+                size: 64, color: AppColors.textHintOf(context)),
+            SizedBox(height: 12),
+            Text('Chưa có kho hàng',
+                style: TextStyle(color: AppColors.textSecondaryOf(context))),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () => _navigateToForm(context),
@@ -177,8 +177,8 @@ class _WarehouseCard extends StatelessWidget {
                             warehouse.address!.isNotEmpty)
                           Text(
                             warehouse.address!,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: AppColors.textSecondaryOf(context),
                               fontSize: 13,
                             ),
                           ),
@@ -238,12 +238,12 @@ class _WarehouseCard extends StatelessWidget {
                 ),
               ],
               if (warehouse.notes != null && warehouse.notes!.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   warehouse.notes!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textHint,
+                    color: AppColors.textHintOf(context),
                     fontStyle: FontStyle.italic,
                   ),
                   maxLines: 2,

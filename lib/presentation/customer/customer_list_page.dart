@@ -68,6 +68,10 @@ class _CustomerListPageState extends State<CustomerListPage> {
         child: const Icon(Icons.person_add),
       ),
       body: BlocConsumer<CustomerBloc, CustomerState>(
+        listenWhen: (prev, curr) => curr.maybeWhen(
+          actionSuccess: (_) => true,
+          orElse: () => false,
+        ),
         listener: (context, state) {
           state.mapOrNull(
             actionSuccess: (s) {
@@ -80,6 +84,16 @@ class _CustomerListPageState extends State<CustomerListPage> {
             },
           );
         },
+        buildWhen: (prev, curr) {
+          // Only rebuild for states relevant to the customer list page
+          return curr.maybeWhen(
+            paginatedLoaded: (_, __, ___, ____, _____) => true,
+            customersLoaded: (_) => true,
+            initial: () => true,
+            error: (_) => true,
+            orElse: () => false,
+          );
+        },
         builder: (context, state) {
           return state.map(
             initial: (_) => const AppLoadingIndicator(),
@@ -88,7 +102,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
             paginatedLoaded: (loaded) => _buildSearchableList(
               loaded.customers, loaded.hasMore, loaded.isLoadingMore,
             ),
-            debtsLoaded: (_) => const AppLoadingIndicator(),
+            debtsLoaded: (_) => const SizedBox.shrink(),
             actionSuccess: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
@@ -323,16 +337,20 @@ class _CustomerListPageState extends State<CustomerListPage> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () {
+                        onPressed: () async {
+                          final bloc = context.read<CustomerBloc>();
+                          final navigator = Navigator.of(context);
                           Navigator.pop(sheetContext);
-                          Navigator.of(context).push(
+                          await navigator.push(
                             MaterialPageRoute(
                               builder: (_) => BlocProvider.value(
-                                value: context.read<CustomerBloc>(),
+                                value: bloc,
                                 child: CustomerDebtPage(customer: customer),
                               ),
                             ),
                           );
+                          // Reload customer list when returning from debt page
+                          bloc.add(const CustomerEvent.loadCustomersPaginated());
                         },
                         icon: const Icon(Icons.history, size: 18),
                         label: const Text('Xem toàn bộ lịch sử'),

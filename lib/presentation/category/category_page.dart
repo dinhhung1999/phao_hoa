@@ -137,16 +137,16 @@ class _CategoryPageState extends State<CategoryPage> {
             child: filtered.isEmpty
                 ? ListView(
                     // Needed for RefreshIndicator to work on empty
-                    children: const [
+                    children: [
                       SizedBox(height: 120),
                       Center(
                         child: Column(
                           children: [
                             Icon(Icons.inventory_2_outlined,
-                                size: 64, color: AppColors.textHint),
+                                size: 64, color: AppColors.textHintOf(context)),
                             SizedBox(height: 12),
                             Text('Không tìm thấy sản phẩm',
-                                style: TextStyle(color: AppColors.textSecondary)),
+                                style: TextStyle(color: AppColors.textSecondaryOf(context))),
                           ],
                         ),
                       ),
@@ -228,9 +228,9 @@ class _CategoryPageState extends State<CategoryPage> {
             ),
             Text(
               CurrencyFormatter.format(product.importPrice),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryOf(context),
               ),
             ),
           ],

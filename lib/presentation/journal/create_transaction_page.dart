@@ -68,10 +68,16 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   }
 
   double get _totalValue {
-    return _items.fold(0.0, (sum, item) {
+    return _items.fold(0.0, (s, item) {
       final qty = _resolveQuantity(item.quantityCtl.text);
       final price = _resolvePrice(item);
-      return sum + (qty * price);
+      return s + (qty * price);
+    });
+  }
+
+  int get _totalQuantity {
+    return _items.fold(0, (s, item) {
+      return s + _resolveQuantity(item.quantityCtl.text);
     });
   }
 
@@ -356,12 +362,12 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                         child: Column(
                           children: [
                             Icon(Icons.inventory_2_outlined,
-                                size: 40, color: AppColors.textHint),
+                                size: 40, color: AppColors.textHintOf(context)),
                             const SizedBox(height: 8),
                             Text(
                               'Chưa có sản phẩm nào\nNhấn "Thêm" để chọn sản phẩm',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textSecondary),
+                              style: TextStyle(color: AppColors.textSecondaryOf(context)),
                             ),
                           ],
                         ),
@@ -414,7 +420,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       'Đơn giá',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textSecondaryOf(context),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -431,7 +437,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                           suffixText: 'đ',
                                           suffixStyle: TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.textSecondary,
+                                            color: AppColors.textSecondaryOf(context),
                                           ),
                                         ),
                                         style: const TextStyle(fontSize: 13),
@@ -458,7 +464,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       'Số lượng',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textSecondaryOf(context),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -475,7 +481,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                           hintText: 'VD: 7*24',
                                           hintStyle: TextStyle(
                                             fontSize: 11,
-                                            color: AppColors.textHint,
+                                            color: AppColors.textHintOf(context),
                                           ),
                                         ),
                                         style: const TextStyle(fontSize: 13),
@@ -509,7 +515,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                         'Thành tiền',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: AppColors.textSecondary,
+                                          color: AppColors.textSecondaryOf(context),
                                         ),
                                       ),
                                       const SizedBox(height: 6),
@@ -540,19 +546,42 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                     color: color.withValues(alpha: 0.05),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: [
-                          const Text('TỔNG CỘNG',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text(
-                            CurrencyFormatter.format(_totalValue),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                              color: color,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Tổng số lượng',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w500, fontSize: 14)),
+                              Text(
+                                '$_totalQuantity SP',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: color,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(height: 1),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('TỔNG CỘNG',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text(
+                                CurrencyFormatter.format(_totalValue),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                  color: color,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -622,7 +651,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
         // Customer type toggle
         Row(
           children: [
-            const Icon(Icons.person_outline, size: 20, color: AppColors.textSecondary),
+            Icon(Icons.person_outline, size: 20, color: AppColors.textSecondaryOf(context)),
             const SizedBox(width: 8),
             const Text('Khách hàng', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ],
@@ -778,7 +807,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                   child: Row(
                     children: [
                       Icon(Icons.info_outline,
-                          size: 18, color: AppColors.textSecondary),
+                          size: 18, color: AppColors.textSecondaryOf(context)),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(

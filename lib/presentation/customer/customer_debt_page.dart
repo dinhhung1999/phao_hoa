@@ -35,19 +35,49 @@ class _CustomerDebtPageState extends State<CustomerDebtPage> {
       appBar: AppBar(
         title: Text('Công nợ - ${widget.customer.name}'),
       ),
-      body: BlocBuilder<CustomerBloc, CustomerState>(
+      body: BlocConsumer<CustomerBloc, CustomerState>(
+        listenWhen: (prev, curr) => curr.maybeWhen(
+          actionSuccess: (_) => true,
+          orElse: () => false,
+        ),
+        listener: (context, state) {
+          state.mapOrNull(
+            actionSuccess: (s) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(s.message),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+              // Reload debts after payment/settle
+              context.read<CustomerBloc>().add(CustomerEvent.loadDebts(
+                    customerId: widget.customer.id,
+                    customer: widget.customer,
+                  ));
+            },
+          );
+        },
+        buildWhen: (prev, curr) {
+          // Only rebuild for states relevant to the debt page
+          return curr.maybeWhen(
+            debtsLoaded: (_, __) => true,
+            loading: () => true,
+            error: (_) => true,
+            orElse: () => false,
+          );
+        },
         builder: (context, state) {
           return state.map(
             initial: (_) => const AppLoadingIndicator(),
             loading: (_) =>
                 const AppLoadingIndicator(message: 'Đang tải lịch sử...'),
-            customersLoaded: (_) => const AppLoadingIndicator(),
-            paginatedLoaded: (_) => const AppLoadingIndicator(),
+            customersLoaded: (_) => const SizedBox.shrink(),
+            paginatedLoaded: (_) => const SizedBox.shrink(),
             debtsLoaded: (loaded) => _buildDebtHistory(
               loaded.customer,
               loaded.records,
             ),
-            actionSuccess: (_) => const AppLoadingIndicator(),
+            actionSuccess: (_) => const SizedBox.shrink(),
             error: (e) => AppErrorWidget(
               message: e.message,
               onRetry: () => context.read<CustomerBloc>().add(
