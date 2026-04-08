@@ -6,4 +6,9 @@ sealed class CategoryEvent with _$CategoryEvent {
   const factory CategoryEvent.addProduct(Product product) = _AddProduct;
   const factory CategoryEvent.updateProduct(Product product) = _UpdateProduct;
   const factory CategoryEvent.deleteProduct(String id) = _DeleteProduct;
+
+  // Pagination events
+  const factory CategoryEvent.loadProductsPaginated() = _LoadProductsPaginated;
+  const factory CategoryEvent.loadMoreProducts() = _LoadMoreProducts;
+  const factory CategoryEvent.refreshProducts() = _RefreshProducts;
 }

@@ -55,7 +55,7 @@ extension CustomerEventPatterns on CustomerEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadCustomers value)?  loadCustomers,TResult Function( _AddCustomer value)?  addCustomer,TResult Function( _LoadDebts value)?  loadDebts,TResult Function( _MakePayment value)?  makePayment,TResult Function( _SettleAll value)?  settleAll,TResult Function( _UpdateCustomer value)?  updateCustomer,TResult Function( _DeleteCustomer value)?  deleteCustomer,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadCustomers value)?  loadCustomers,TResult Function( _AddCustomer value)?  addCustomer,TResult Function( _LoadDebts value)?  loadDebts,TResult Function( _MakePayment value)?  makePayment,TResult Function( _SettleAll value)?  settleAll,TResult Function( _UpdateCustomer value)?  updateCustomer,TResult Function( _DeleteCustomer value)?  deleteCustomer,TResult Function( _LoadCustomersPaginated value)?  loadCustomersPaginated,TResult Function( _LoadMoreCustomers value)?  loadMoreCustomers,TResult Function( _RefreshCustomers value)?  refreshCustomers,TResult Function( _AddMultipleCustomers value)?  addMultipleCustomers,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _LoadCustomers() when loadCustomers != null:
@@ -65,7 +65,11 @@ return loadDebts(_that);case _MakePayment() when makePayment != null:
 return makePayment(_that);case _SettleAll() when settleAll != null:
 return settleAll(_that);case _UpdateCustomer() when updateCustomer != null:
 return updateCustomer(_that);case _DeleteCustomer() when deleteCustomer != null:
-return deleteCustomer(_that);case _:
+return deleteCustomer(_that);case _LoadCustomersPaginated() when loadCustomersPaginated != null:
+return loadCustomersPaginated(_that);case _LoadMoreCustomers() when loadMoreCustomers != null:
+return loadMoreCustomers(_that);case _RefreshCustomers() when refreshCustomers != null:
+return refreshCustomers(_that);case _AddMultipleCustomers() when addMultipleCustomers != null:
+return addMultipleCustomers(_that);case _:
   return orElse();
 
 }
@@ -83,7 +87,7 @@ return deleteCustomer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadCustomers value)  loadCustomers,required TResult Function( _AddCustomer value)  addCustomer,required TResult Function( _LoadDebts value)  loadDebts,required TResult Function( _MakePayment value)  makePayment,required TResult Function( _SettleAll value)  settleAll,required TResult Function( _UpdateCustomer value)  updateCustomer,required TResult Function( _DeleteCustomer value)  deleteCustomer,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadCustomers value)  loadCustomers,required TResult Function( _AddCustomer value)  addCustomer,required TResult Function( _LoadDebts value)  loadDebts,required TResult Function( _MakePayment value)  makePayment,required TResult Function( _SettleAll value)  settleAll,required TResult Function( _UpdateCustomer value)  updateCustomer,required TResult Function( _DeleteCustomer value)  deleteCustomer,required TResult Function( _LoadCustomersPaginated value)  loadCustomersPaginated,required TResult Function( _LoadMoreCustomers value)  loadMoreCustomers,required TResult Function( _RefreshCustomers value)  refreshCustomers,required TResult Function( _AddMultipleCustomers value)  addMultipleCustomers,}){
 final _that = this;
 switch (_that) {
 case _LoadCustomers():
@@ -93,7 +97,11 @@ return loadDebts(_that);case _MakePayment():
 return makePayment(_that);case _SettleAll():
 return settleAll(_that);case _UpdateCustomer():
 return updateCustomer(_that);case _DeleteCustomer():
-return deleteCustomer(_that);}
+return deleteCustomer(_that);case _LoadCustomersPaginated():
+return loadCustomersPaginated(_that);case _LoadMoreCustomers():
+return loadMoreCustomers(_that);case _RefreshCustomers():
+return refreshCustomers(_that);case _AddMultipleCustomers():
+return addMultipleCustomers(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -107,7 +115,7 @@ return deleteCustomer(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadCustomers value)?  loadCustomers,TResult? Function( _AddCustomer value)?  addCustomer,TResult? Function( _LoadDebts value)?  loadDebts,TResult? Function( _MakePayment value)?  makePayment,TResult? Function( _SettleAll value)?  settleAll,TResult? Function( _UpdateCustomer value)?  updateCustomer,TResult? Function( _DeleteCustomer value)?  deleteCustomer,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadCustomers value)?  loadCustomers,TResult? Function( _AddCustomer value)?  addCustomer,TResult? Function( _LoadDebts value)?  loadDebts,TResult? Function( _MakePayment value)?  makePayment,TResult? Function( _SettleAll value)?  settleAll,TResult? Function( _UpdateCustomer value)?  updateCustomer,TResult? Function( _DeleteCustomer value)?  deleteCustomer,TResult? Function( _LoadCustomersPaginated value)?  loadCustomersPaginated,TResult? Function( _LoadMoreCustomers value)?  loadMoreCustomers,TResult? Function( _RefreshCustomers value)?  refreshCustomers,TResult? Function( _AddMultipleCustomers value)?  addMultipleCustomers,}){
 final _that = this;
 switch (_that) {
 case _LoadCustomers() when loadCustomers != null:
@@ -117,7 +125,11 @@ return loadDebts(_that);case _MakePayment() when makePayment != null:
 return makePayment(_that);case _SettleAll() when settleAll != null:
 return settleAll(_that);case _UpdateCustomer() when updateCustomer != null:
 return updateCustomer(_that);case _DeleteCustomer() when deleteCustomer != null:
-return deleteCustomer(_that);case _:
+return deleteCustomer(_that);case _LoadCustomersPaginated() when loadCustomersPaginated != null:
+return loadCustomersPaginated(_that);case _LoadMoreCustomers() when loadMoreCustomers != null:
+return loadMoreCustomers(_that);case _RefreshCustomers() when refreshCustomers != null:
+return refreshCustomers(_that);case _AddMultipleCustomers() when addMultipleCustomers != null:
+return addMultipleCustomers(_that);case _:
   return null;
 
 }
@@ -134,7 +146,7 @@ return deleteCustomer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadCustomers,TResult Function( Customer customer)?  addCustomer,TResult Function( String customerId,  Customer customer)?  loadDebts,TResult Function( String customerId,  double amount,  String? note)?  makePayment,TResult Function( String customerId)?  settleAll,TResult Function( Customer customer)?  updateCustomer,TResult Function( String customerId)?  deleteCustomer,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadCustomers,TResult Function( Customer customer)?  addCustomer,TResult Function( String customerId,  Customer customer)?  loadDebts,TResult Function( String customerId,  double amount,  String? note)?  makePayment,TResult Function( String customerId)?  settleAll,TResult Function( Customer customer)?  updateCustomer,TResult Function( String customerId)?  deleteCustomer,TResult Function()?  loadCustomersPaginated,TResult Function()?  loadMoreCustomers,TResult Function()?  refreshCustomers,TResult Function( List<Customer> customers)?  addMultipleCustomers,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoadCustomers() when loadCustomers != null:
 return loadCustomers();case _AddCustomer() when addCustomer != null:
@@ -143,7 +155,11 @@ return loadDebts(_that.customerId,_that.customer);case _MakePayment() when makeP
 return makePayment(_that.customerId,_that.amount,_that.note);case _SettleAll() when settleAll != null:
 return settleAll(_that.customerId);case _UpdateCustomer() when updateCustomer != null:
 return updateCustomer(_that.customer);case _DeleteCustomer() when deleteCustomer != null:
-return deleteCustomer(_that.customerId);case _:
+return deleteCustomer(_that.customerId);case _LoadCustomersPaginated() when loadCustomersPaginated != null:
+return loadCustomersPaginated();case _LoadMoreCustomers() when loadMoreCustomers != null:
+return loadMoreCustomers();case _RefreshCustomers() when refreshCustomers != null:
+return refreshCustomers();case _AddMultipleCustomers() when addMultipleCustomers != null:
+return addMultipleCustomers(_that.customers);case _:
   return orElse();
 
 }
@@ -161,7 +177,7 @@ return deleteCustomer(_that.customerId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadCustomers,required TResult Function( Customer customer)  addCustomer,required TResult Function( String customerId,  Customer customer)  loadDebts,required TResult Function( String customerId,  double amount,  String? note)  makePayment,required TResult Function( String customerId)  settleAll,required TResult Function( Customer customer)  updateCustomer,required TResult Function( String customerId)  deleteCustomer,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadCustomers,required TResult Function( Customer customer)  addCustomer,required TResult Function( String customerId,  Customer customer)  loadDebts,required TResult Function( String customerId,  double amount,  String? note)  makePayment,required TResult Function( String customerId)  settleAll,required TResult Function( Customer customer)  updateCustomer,required TResult Function( String customerId)  deleteCustomer,required TResult Function()  loadCustomersPaginated,required TResult Function()  loadMoreCustomers,required TResult Function()  refreshCustomers,required TResult Function( List<Customer> customers)  addMultipleCustomers,}) {final _that = this;
 switch (_that) {
 case _LoadCustomers():
 return loadCustomers();case _AddCustomer():
@@ -170,7 +186,11 @@ return loadDebts(_that.customerId,_that.customer);case _MakePayment():
 return makePayment(_that.customerId,_that.amount,_that.note);case _SettleAll():
 return settleAll(_that.customerId);case _UpdateCustomer():
 return updateCustomer(_that.customer);case _DeleteCustomer():
-return deleteCustomer(_that.customerId);}
+return deleteCustomer(_that.customerId);case _LoadCustomersPaginated():
+return loadCustomersPaginated();case _LoadMoreCustomers():
+return loadMoreCustomers();case _RefreshCustomers():
+return refreshCustomers();case _AddMultipleCustomers():
+return addMultipleCustomers(_that.customers);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -184,7 +204,7 @@ return deleteCustomer(_that.customerId);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadCustomers,TResult? Function( Customer customer)?  addCustomer,TResult? Function( String customerId,  Customer customer)?  loadDebts,TResult? Function( String customerId,  double amount,  String? note)?  makePayment,TResult? Function( String customerId)?  settleAll,TResult? Function( Customer customer)?  updateCustomer,TResult? Function( String customerId)?  deleteCustomer,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadCustomers,TResult? Function( Customer customer)?  addCustomer,TResult? Function( String customerId,  Customer customer)?  loadDebts,TResult? Function( String customerId,  double amount,  String? note)?  makePayment,TResult? Function( String customerId)?  settleAll,TResult? Function( Customer customer)?  updateCustomer,TResult? Function( String customerId)?  deleteCustomer,TResult? Function()?  loadCustomersPaginated,TResult? Function()?  loadMoreCustomers,TResult? Function()?  refreshCustomers,TResult? Function( List<Customer> customers)?  addMultipleCustomers,}) {final _that = this;
 switch (_that) {
 case _LoadCustomers() when loadCustomers != null:
 return loadCustomers();case _AddCustomer() when addCustomer != null:
@@ -193,7 +213,11 @@ return loadDebts(_that.customerId,_that.customer);case _MakePayment() when makeP
 return makePayment(_that.customerId,_that.amount,_that.note);case _SettleAll() when settleAll != null:
 return settleAll(_that.customerId);case _UpdateCustomer() when updateCustomer != null:
 return updateCustomer(_that.customer);case _DeleteCustomer() when deleteCustomer != null:
-return deleteCustomer(_that.customerId);case _:
+return deleteCustomer(_that.customerId);case _LoadCustomersPaginated() when loadCustomersPaginated != null:
+return loadCustomersPaginated();case _LoadMoreCustomers() when loadMoreCustomers != null:
+return loadMoreCustomers();case _RefreshCustomers() when refreshCustomers != null:
+return refreshCustomers();case _AddMultipleCustomers() when addMultipleCustomers != null:
+return addMultipleCustomers(_that.customers);case _:
   return null;
 
 }
@@ -636,6 +660,174 @@ as String,
 }
 
 /// @nodoc
+
+
+class _LoadCustomersPaginated implements CustomerEvent {
+  const _LoadCustomersPaginated();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoadCustomersPaginated);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CustomerEvent.loadCustomersPaginated()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _LoadMoreCustomers implements CustomerEvent {
+  const _LoadMoreCustomers();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoadMoreCustomers);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CustomerEvent.loadMoreCustomers()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _RefreshCustomers implements CustomerEvent {
+  const _RefreshCustomers();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RefreshCustomers);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CustomerEvent.refreshCustomers()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _AddMultipleCustomers implements CustomerEvent {
+  const _AddMultipleCustomers(final  List<Customer> customers): _customers = customers;
+  
+
+ final  List<Customer> _customers;
+ List<Customer> get customers {
+  if (_customers is EqualUnmodifiableListView) return _customers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_customers);
+}
+
+
+/// Create a copy of CustomerEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AddMultipleCustomersCopyWith<_AddMultipleCustomers> get copyWith => __$AddMultipleCustomersCopyWithImpl<_AddMultipleCustomers>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AddMultipleCustomers&&const DeepCollectionEquality().equals(other._customers, _customers));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_customers));
+
+@override
+String toString() {
+  return 'CustomerEvent.addMultipleCustomers(customers: $customers)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AddMultipleCustomersCopyWith<$Res> implements $CustomerEventCopyWith<$Res> {
+  factory _$AddMultipleCustomersCopyWith(_AddMultipleCustomers value, $Res Function(_AddMultipleCustomers) _then) = __$AddMultipleCustomersCopyWithImpl;
+@useResult
+$Res call({
+ List<Customer> customers
+});
+
+
+
+
+}
+/// @nodoc
+class __$AddMultipleCustomersCopyWithImpl<$Res>
+    implements _$AddMultipleCustomersCopyWith<$Res> {
+  __$AddMultipleCustomersCopyWithImpl(this._self, this._then);
+
+  final _AddMultipleCustomers _self;
+  final $Res Function(_AddMultipleCustomers) _then;
+
+/// Create a copy of CustomerEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? customers = null,}) {
+  return _then(_AddMultipleCustomers(
+null == customers ? _self._customers : customers // ignore: cast_nullable_to_non_nullable
+as List<Customer>,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$CustomerState {
 
 
@@ -679,7 +871,7 @@ extension CustomerStatePatterns on CustomerState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _CustomersLoaded value)?  customersLoaded,TResult Function( _DebtsLoaded value)?  debtsLoaded,TResult Function( _ActionSuccess value)?  actionSuccess,TResult Function( _Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _CustomersLoaded value)?  customersLoaded,TResult Function( _DebtsLoaded value)?  debtsLoaded,TResult Function( _ActionSuccess value)?  actionSuccess,TResult Function( _Error value)?  error,TResult Function( _PaginatedLoaded value)?  paginatedLoaded,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -688,7 +880,8 @@ return loading(_that);case _CustomersLoaded() when customersLoaded != null:
 return customersLoaded(_that);case _DebtsLoaded() when debtsLoaded != null:
 return debtsLoaded(_that);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that);case _Error() when error != null:
-return error(_that);case _:
+return error(_that);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that);case _:
   return orElse();
 
 }
@@ -706,7 +899,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _CustomersLoaded value)  customersLoaded,required TResult Function( _DebtsLoaded value)  debtsLoaded,required TResult Function( _ActionSuccess value)  actionSuccess,required TResult Function( _Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _CustomersLoaded value)  customersLoaded,required TResult Function( _DebtsLoaded value)  debtsLoaded,required TResult Function( _ActionSuccess value)  actionSuccess,required TResult Function( _Error value)  error,required TResult Function( _PaginatedLoaded value)  paginatedLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial():
@@ -715,7 +908,8 @@ return loading(_that);case _CustomersLoaded():
 return customersLoaded(_that);case _DebtsLoaded():
 return debtsLoaded(_that);case _ActionSuccess():
 return actionSuccess(_that);case _Error():
-return error(_that);}
+return error(_that);case _PaginatedLoaded():
+return paginatedLoaded(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -729,7 +923,7 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _CustomersLoaded value)?  customersLoaded,TResult? Function( _DebtsLoaded value)?  debtsLoaded,TResult? Function( _ActionSuccess value)?  actionSuccess,TResult? Function( _Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _CustomersLoaded value)?  customersLoaded,TResult? Function( _DebtsLoaded value)?  debtsLoaded,TResult? Function( _ActionSuccess value)?  actionSuccess,TResult? Function( _Error value)?  error,TResult? Function( _PaginatedLoaded value)?  paginatedLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -738,7 +932,8 @@ return loading(_that);case _CustomersLoaded() when customersLoaded != null:
 return customersLoaded(_that);case _DebtsLoaded() when debtsLoaded != null:
 return debtsLoaded(_that);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that);case _Error() when error != null:
-return error(_that);case _:
+return error(_that);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that);case _:
   return null;
 
 }
@@ -755,7 +950,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<Customer> customers)?  customersLoaded,TResult Function( Customer customer,  List<DebtRecord> records)?  debtsLoaded,TResult Function( String message)?  actionSuccess,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<Customer> customers)?  customersLoaded,TResult Function( Customer customer,  List<DebtRecord> records)?  debtsLoaded,TResult Function( String message)?  actionSuccess,TResult Function( String message)?  error,TResult Function( List<Customer> customers,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  String? error)?  paginatedLoaded,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
@@ -763,7 +958,8 @@ return loading();case _CustomersLoaded() when customersLoaded != null:
 return customersLoaded(_that.customers);case _DebtsLoaded() when debtsLoaded != null:
 return debtsLoaded(_that.customer,_that.records);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that.message);case _Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that.customers,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.error);case _:
   return orElse();
 
 }
@@ -781,7 +977,7 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<Customer> customers)  customersLoaded,required TResult Function( Customer customer,  List<DebtRecord> records)  debtsLoaded,required TResult Function( String message)  actionSuccess,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<Customer> customers)  customersLoaded,required TResult Function( Customer customer,  List<DebtRecord> records)  debtsLoaded,required TResult Function( String message)  actionSuccess,required TResult Function( String message)  error,required TResult Function( List<Customer> customers,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  String? error)  paginatedLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial():
 return initial();case _Loading():
@@ -789,7 +985,8 @@ return loading();case _CustomersLoaded():
 return customersLoaded(_that.customers);case _DebtsLoaded():
 return debtsLoaded(_that.customer,_that.records);case _ActionSuccess():
 return actionSuccess(_that.message);case _Error():
-return error(_that.message);}
+return error(_that.message);case _PaginatedLoaded():
+return paginatedLoaded(_that.customers,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.error);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -803,7 +1000,7 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<Customer> customers)?  customersLoaded,TResult? Function( Customer customer,  List<DebtRecord> records)?  debtsLoaded,TResult? Function( String message)?  actionSuccess,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<Customer> customers)?  customersLoaded,TResult? Function( Customer customer,  List<DebtRecord> records)?  debtsLoaded,TResult? Function( String message)?  actionSuccess,TResult? Function( String message)?  error,TResult? Function( List<Customer> customers,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  String? error)?  paginatedLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
@@ -811,7 +1008,8 @@ return loading();case _CustomersLoaded() when customersLoaded != null:
 return customersLoaded(_that.customers);case _DebtsLoaded() when debtsLoaded != null:
 return debtsLoaded(_that.customer,_that.records);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that.message);case _Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that.customers,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.error);case _:
   return null;
 
 }
@@ -1155,6 +1353,86 @@ class __$ErrorCopyWithImpl<$Res>
   return _then(_Error(
 null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _PaginatedLoaded implements CustomerState {
+  const _PaginatedLoaded({required final  List<Customer> customers, required this.hasMore, this.isLoadingMore = false, this.lastDocument, this.error}): _customers = customers;
+  
+
+ final  List<Customer> _customers;
+ List<Customer> get customers {
+  if (_customers is EqualUnmodifiableListView) return _customers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_customers);
+}
+
+ final  bool hasMore;
+@JsonKey() final  bool isLoadingMore;
+ final  dynamic lastDocument;
+ final  String? error;
+
+/// Create a copy of CustomerState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PaginatedLoadedCopyWith<_PaginatedLoaded> get copyWith => __$PaginatedLoadedCopyWithImpl<_PaginatedLoaded>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PaginatedLoaded&&const DeepCollectionEquality().equals(other._customers, _customers)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&const DeepCollectionEquality().equals(other.lastDocument, lastDocument)&&(identical(other.error, error) || other.error == error));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_customers),hasMore,isLoadingMore,const DeepCollectionEquality().hash(lastDocument),error);
+
+@override
+String toString() {
+  return 'CustomerState.paginatedLoaded(customers: $customers, hasMore: $hasMore, isLoadingMore: $isLoadingMore, lastDocument: $lastDocument, error: $error)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PaginatedLoadedCopyWith<$Res> implements $CustomerStateCopyWith<$Res> {
+  factory _$PaginatedLoadedCopyWith(_PaginatedLoaded value, $Res Function(_PaginatedLoaded) _then) = __$PaginatedLoadedCopyWithImpl;
+@useResult
+$Res call({
+ List<Customer> customers, bool hasMore, bool isLoadingMore, dynamic lastDocument, String? error
+});
+
+
+
+
+}
+/// @nodoc
+class __$PaginatedLoadedCopyWithImpl<$Res>
+    implements _$PaginatedLoadedCopyWith<$Res> {
+  __$PaginatedLoadedCopyWithImpl(this._self, this._then);
+
+  final _PaginatedLoaded _self;
+  final $Res Function(_PaginatedLoaded) _then;
+
+/// Create a copy of CustomerState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? customers = null,Object? hasMore = null,Object? isLoadingMore = null,Object? lastDocument = freezed,Object? error = freezed,}) {
+  return _then(_PaginatedLoaded(
+customers: null == customers ? _self._customers : customers // ignore: cast_nullable_to_non_nullable
+as List<Customer>,hasMore: null == hasMore ? _self.hasMore : hasMore // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
+as bool,lastDocument: freezed == lastDocument ? _self.lastDocument : lastDocument // ignore: cast_nullable_to_non_nullable
+as dynamic,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

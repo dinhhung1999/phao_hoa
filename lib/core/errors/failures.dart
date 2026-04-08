@@ -40,23 +40,4 @@ class InsufficientStockFailure extends Failure {
   List<Object> get props => [message, availableQuantity];
 }
 
-/// Regulation violation failure (NĐ 137/2020)
-class RegulationViolationFailure extends Failure {
-  final String regulationClass;
 
-  const RegulationViolationFailure({
-    required this.regulationClass,
-    String message = 'Vi phạm quy định NĐ 137/2020/NĐ-CP.',
-  }) : super(message);
-
-  @override
-  List<Object> get props => [message, regulationClass];
-}
-
-/// Checklist not completed failure
-class ChecklistNotCompletedFailure extends Failure {
-  const ChecklistNotCompletedFailure([
-    super.message = 'Checklist PCCC chưa hoàn thành hôm nay. '
-        'Vui lòng hoàn thành trước khi xuất kho.',
-  ]);
-}

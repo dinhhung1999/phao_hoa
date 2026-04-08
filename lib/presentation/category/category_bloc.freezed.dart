@@ -55,14 +55,17 @@ extension CategoryEventPatterns on CategoryEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadProducts value)?  loadProducts,TResult Function( _AddProduct value)?  addProduct,TResult Function( _UpdateProduct value)?  updateProduct,TResult Function( _DeleteProduct value)?  deleteProduct,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadProducts value)?  loadProducts,TResult Function( _AddProduct value)?  addProduct,TResult Function( _UpdateProduct value)?  updateProduct,TResult Function( _DeleteProduct value)?  deleteProduct,TResult Function( _LoadProductsPaginated value)?  loadProductsPaginated,TResult Function( _LoadMoreProducts value)?  loadMoreProducts,TResult Function( _RefreshProducts value)?  refreshProducts,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _LoadProducts() when loadProducts != null:
 return loadProducts(_that);case _AddProduct() when addProduct != null:
 return addProduct(_that);case _UpdateProduct() when updateProduct != null:
 return updateProduct(_that);case _DeleteProduct() when deleteProduct != null:
-return deleteProduct(_that);case _:
+return deleteProduct(_that);case _LoadProductsPaginated() when loadProductsPaginated != null:
+return loadProductsPaginated(_that);case _LoadMoreProducts() when loadMoreProducts != null:
+return loadMoreProducts(_that);case _RefreshProducts() when refreshProducts != null:
+return refreshProducts(_that);case _:
   return orElse();
 
 }
@@ -80,14 +83,17 @@ return deleteProduct(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadProducts value)  loadProducts,required TResult Function( _AddProduct value)  addProduct,required TResult Function( _UpdateProduct value)  updateProduct,required TResult Function( _DeleteProduct value)  deleteProduct,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadProducts value)  loadProducts,required TResult Function( _AddProduct value)  addProduct,required TResult Function( _UpdateProduct value)  updateProduct,required TResult Function( _DeleteProduct value)  deleteProduct,required TResult Function( _LoadProductsPaginated value)  loadProductsPaginated,required TResult Function( _LoadMoreProducts value)  loadMoreProducts,required TResult Function( _RefreshProducts value)  refreshProducts,}){
 final _that = this;
 switch (_that) {
 case _LoadProducts():
 return loadProducts(_that);case _AddProduct():
 return addProduct(_that);case _UpdateProduct():
 return updateProduct(_that);case _DeleteProduct():
-return deleteProduct(_that);}
+return deleteProduct(_that);case _LoadProductsPaginated():
+return loadProductsPaginated(_that);case _LoadMoreProducts():
+return loadMoreProducts(_that);case _RefreshProducts():
+return refreshProducts(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -101,14 +107,17 @@ return deleteProduct(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadProducts value)?  loadProducts,TResult? Function( _AddProduct value)?  addProduct,TResult? Function( _UpdateProduct value)?  updateProduct,TResult? Function( _DeleteProduct value)?  deleteProduct,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadProducts value)?  loadProducts,TResult? Function( _AddProduct value)?  addProduct,TResult? Function( _UpdateProduct value)?  updateProduct,TResult? Function( _DeleteProduct value)?  deleteProduct,TResult? Function( _LoadProductsPaginated value)?  loadProductsPaginated,TResult? Function( _LoadMoreProducts value)?  loadMoreProducts,TResult? Function( _RefreshProducts value)?  refreshProducts,}){
 final _that = this;
 switch (_that) {
 case _LoadProducts() when loadProducts != null:
 return loadProducts(_that);case _AddProduct() when addProduct != null:
 return addProduct(_that);case _UpdateProduct() when updateProduct != null:
 return updateProduct(_that);case _DeleteProduct() when deleteProduct != null:
-return deleteProduct(_that);case _:
+return deleteProduct(_that);case _LoadProductsPaginated() when loadProductsPaginated != null:
+return loadProductsPaginated(_that);case _LoadMoreProducts() when loadMoreProducts != null:
+return loadMoreProducts(_that);case _RefreshProducts() when refreshProducts != null:
+return refreshProducts(_that);case _:
   return null;
 
 }
@@ -125,13 +134,16 @@ return deleteProduct(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadProducts,TResult Function( Product product)?  addProduct,TResult Function( Product product)?  updateProduct,TResult Function( String id)?  deleteProduct,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadProducts,TResult Function( Product product)?  addProduct,TResult Function( Product product)?  updateProduct,TResult Function( String id)?  deleteProduct,TResult Function()?  loadProductsPaginated,TResult Function()?  loadMoreProducts,TResult Function()?  refreshProducts,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoadProducts() when loadProducts != null:
 return loadProducts();case _AddProduct() when addProduct != null:
 return addProduct(_that.product);case _UpdateProduct() when updateProduct != null:
 return updateProduct(_that.product);case _DeleteProduct() when deleteProduct != null:
-return deleteProduct(_that.id);case _:
+return deleteProduct(_that.id);case _LoadProductsPaginated() when loadProductsPaginated != null:
+return loadProductsPaginated();case _LoadMoreProducts() when loadMoreProducts != null:
+return loadMoreProducts();case _RefreshProducts() when refreshProducts != null:
+return refreshProducts();case _:
   return orElse();
 
 }
@@ -149,13 +161,16 @@ return deleteProduct(_that.id);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadProducts,required TResult Function( Product product)  addProduct,required TResult Function( Product product)  updateProduct,required TResult Function( String id)  deleteProduct,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadProducts,required TResult Function( Product product)  addProduct,required TResult Function( Product product)  updateProduct,required TResult Function( String id)  deleteProduct,required TResult Function()  loadProductsPaginated,required TResult Function()  loadMoreProducts,required TResult Function()  refreshProducts,}) {final _that = this;
 switch (_that) {
 case _LoadProducts():
 return loadProducts();case _AddProduct():
 return addProduct(_that.product);case _UpdateProduct():
 return updateProduct(_that.product);case _DeleteProduct():
-return deleteProduct(_that.id);}
+return deleteProduct(_that.id);case _LoadProductsPaginated():
+return loadProductsPaginated();case _LoadMoreProducts():
+return loadMoreProducts();case _RefreshProducts():
+return refreshProducts();}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -169,13 +184,16 @@ return deleteProduct(_that.id);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadProducts,TResult? Function( Product product)?  addProduct,TResult? Function( Product product)?  updateProduct,TResult? Function( String id)?  deleteProduct,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadProducts,TResult? Function( Product product)?  addProduct,TResult? Function( Product product)?  updateProduct,TResult? Function( String id)?  deleteProduct,TResult? Function()?  loadProductsPaginated,TResult? Function()?  loadMoreProducts,TResult? Function()?  refreshProducts,}) {final _that = this;
 switch (_that) {
 case _LoadProducts() when loadProducts != null:
 return loadProducts();case _AddProduct() when addProduct != null:
 return addProduct(_that.product);case _UpdateProduct() when updateProduct != null:
 return updateProduct(_that.product);case _DeleteProduct() when deleteProduct != null:
-return deleteProduct(_that.id);case _:
+return deleteProduct(_that.id);case _LoadProductsPaginated() when loadProductsPaginated != null:
+return loadProductsPaginated();case _LoadMoreProducts() when loadMoreProducts != null:
+return loadMoreProducts();case _RefreshProducts() when refreshProducts != null:
+return refreshProducts();case _:
   return null;
 
 }
@@ -414,6 +432,102 @@ as String,
 }
 
 /// @nodoc
+
+
+class _LoadProductsPaginated implements CategoryEvent {
+  const _LoadProductsPaginated();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoadProductsPaginated);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CategoryEvent.loadProductsPaginated()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _LoadMoreProducts implements CategoryEvent {
+  const _LoadMoreProducts();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoadMoreProducts);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CategoryEvent.loadMoreProducts()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _RefreshProducts implements CategoryEvent {
+  const _RefreshProducts();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RefreshProducts);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CategoryEvent.refreshProducts()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
 mixin _$CategoryState {
 
 
@@ -457,7 +571,7 @@ extension CategoryStatePatterns on CategoryState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _Loaded value)?  loaded,TResult Function( _ActionSuccess value)?  actionSuccess,TResult Function( _Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _Loaded value)?  loaded,TResult Function( _ActionSuccess value)?  actionSuccess,TResult Function( _Error value)?  error,TResult Function( _PaginatedLoaded value)?  paginatedLoaded,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -465,7 +579,8 @@ return initial(_that);case _Loading() when loading != null:
 return loading(_that);case _Loaded() when loaded != null:
 return loaded(_that);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that);case _Error() when error != null:
-return error(_that);case _:
+return error(_that);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that);case _:
   return orElse();
 
 }
@@ -483,7 +598,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _Loaded value)  loaded,required TResult Function( _ActionSuccess value)  actionSuccess,required TResult Function( _Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _Loaded value)  loaded,required TResult Function( _ActionSuccess value)  actionSuccess,required TResult Function( _Error value)  error,required TResult Function( _PaginatedLoaded value)  paginatedLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial():
@@ -491,7 +606,8 @@ return initial(_that);case _Loading():
 return loading(_that);case _Loaded():
 return loaded(_that);case _ActionSuccess():
 return actionSuccess(_that);case _Error():
-return error(_that);}
+return error(_that);case _PaginatedLoaded():
+return paginatedLoaded(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -505,7 +621,7 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _Loaded value)?  loaded,TResult? Function( _ActionSuccess value)?  actionSuccess,TResult? Function( _Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _Loaded value)?  loaded,TResult? Function( _ActionSuccess value)?  actionSuccess,TResult? Function( _Error value)?  error,TResult? Function( _PaginatedLoaded value)?  paginatedLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -513,7 +629,8 @@ return initial(_that);case _Loading() when loading != null:
 return loading(_that);case _Loaded() when loaded != null:
 return loaded(_that);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that);case _Error() when error != null:
-return error(_that);case _:
+return error(_that);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that);case _:
   return null;
 
 }
@@ -530,14 +647,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<Product> products)?  loaded,TResult Function( String message)?  actionSuccess,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<Product> products)?  loaded,TResult Function( String message)?  actionSuccess,TResult Function( String message)?  error,TResult Function( List<Product> products,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  String? error)?  paginatedLoaded,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
 return loading();case _Loaded() when loaded != null:
 return loaded(_that.products);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that.message);case _Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that.products,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.error);case _:
   return orElse();
 
 }
@@ -555,14 +673,15 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<Product> products)  loaded,required TResult Function( String message)  actionSuccess,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<Product> products)  loaded,required TResult Function( String message)  actionSuccess,required TResult Function( String message)  error,required TResult Function( List<Product> products,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  String? error)  paginatedLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial():
 return initial();case _Loading():
 return loading();case _Loaded():
 return loaded(_that.products);case _ActionSuccess():
 return actionSuccess(_that.message);case _Error():
-return error(_that.message);}
+return error(_that.message);case _PaginatedLoaded():
+return paginatedLoaded(_that.products,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.error);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -576,14 +695,15 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<Product> products)?  loaded,TResult? Function( String message)?  actionSuccess,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<Product> products)?  loaded,TResult? Function( String message)?  actionSuccess,TResult? Function( String message)?  error,TResult? Function( List<Product> products,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  String? error)?  paginatedLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
 return loading();case _Loaded() when loaded != null:
 return loaded(_that.products);case _ActionSuccess() when actionSuccess != null:
 return actionSuccess(_that.message);case _Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case _PaginatedLoaded() when paginatedLoaded != null:
+return paginatedLoaded(_that.products,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.error);case _:
   return null;
 
 }
@@ -853,6 +973,86 @@ class __$ErrorCopyWithImpl<$Res>
   return _then(_Error(
 null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _PaginatedLoaded implements CategoryState {
+  const _PaginatedLoaded({required final  List<Product> products, required this.hasMore, this.isLoadingMore = false, this.lastDocument, this.error}): _products = products;
+  
+
+ final  List<Product> _products;
+ List<Product> get products {
+  if (_products is EqualUnmodifiableListView) return _products;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_products);
+}
+
+ final  bool hasMore;
+@JsonKey() final  bool isLoadingMore;
+ final  dynamic lastDocument;
+ final  String? error;
+
+/// Create a copy of CategoryState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PaginatedLoadedCopyWith<_PaginatedLoaded> get copyWith => __$PaginatedLoadedCopyWithImpl<_PaginatedLoaded>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PaginatedLoaded&&const DeepCollectionEquality().equals(other._products, _products)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&const DeepCollectionEquality().equals(other.lastDocument, lastDocument)&&(identical(other.error, error) || other.error == error));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_products),hasMore,isLoadingMore,const DeepCollectionEquality().hash(lastDocument),error);
+
+@override
+String toString() {
+  return 'CategoryState.paginatedLoaded(products: $products, hasMore: $hasMore, isLoadingMore: $isLoadingMore, lastDocument: $lastDocument, error: $error)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PaginatedLoadedCopyWith<$Res> implements $CategoryStateCopyWith<$Res> {
+  factory _$PaginatedLoadedCopyWith(_PaginatedLoaded value, $Res Function(_PaginatedLoaded) _then) = __$PaginatedLoadedCopyWithImpl;
+@useResult
+$Res call({
+ List<Product> products, bool hasMore, bool isLoadingMore, dynamic lastDocument, String? error
+});
+
+
+
+
+}
+/// @nodoc
+class __$PaginatedLoadedCopyWithImpl<$Res>
+    implements _$PaginatedLoadedCopyWith<$Res> {
+  __$PaginatedLoadedCopyWithImpl(this._self, this._then);
+
+  final _PaginatedLoaded _self;
+  final $Res Function(_PaginatedLoaded) _then;
+
+/// Create a copy of CategoryState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? products = null,Object? hasMore = null,Object? isLoadingMore = null,Object? lastDocument = freezed,Object? error = freezed,}) {
+  return _then(_PaginatedLoaded(
+products: null == products ? _self._products : products // ignore: cast_nullable_to_non_nullable
+as List<Product>,hasMore: null == hasMore ? _self.hasMore : hasMore // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
+as bool,lastDocument: freezed == lastDocument ? _self.lastDocument : lastDocument // ignore: cast_nullable_to_non_nullable
+as dynamic,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

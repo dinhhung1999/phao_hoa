@@ -1,34 +1,23 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/errors/failures.dart';
+import '../../../core/models/paginated_result.dart';
 import '../../entities/transaction.dart';
 import '../../entities/transaction_item.dart';
 import '../../repositories/transaction_repository.dart';
-import '../../repositories/checklist_repository.dart';
 
-/// Create export order — checks PCCC checklist first
+/// Create export order
 class CreateExportOrder {
-  final TransactionRepository _transactionRepo;
-  final ChecklistRepository _checklistRepo;
+  final TransactionRepository _repository;
 
-  CreateExportOrder(this._transactionRepo, this._checklistRepo);
+  CreateExportOrder(this._repository);
 
   Future<Either<Failure, String>> call({
     required Transaction transaction,
     required List<TransactionItem> items,
-  }) async {
-    // Verify PCCC checklist completed today
-    final checklistResult = await _checklistRepo.isTodayChecklistCompleted();
-    return checklistResult.fold(
-      (failure) => Left(failure),
-      (isCompleted) {
-        if (!isCompleted) {
-          return const Left(ChecklistNotCompletedFailure());
-        }
-        return _transactionRepo.createExportOrder(
-          transaction: transaction,
-          items: items,
-        );
-      },
+  }) {
+    return _repository.createExportOrder(
+      transaction: transaction,
+      items: items,
     );
   }
 }
@@ -79,4 +68,29 @@ class GetTransactionsByDate {
 
   Future<Either<Failure, List<Transaction>>> call(DateTime date) =>
       _repository.getTransactionsByDate(date);
+}
+
+/// Get transaction history with pagination
+class GetTransactionHistoryPaginated {
+  final TransactionRepository _repository;
+
+  GetTransactionHistoryPaginated(this._repository);
+
+  Future<Either<Failure, PaginatedResult<Transaction>>> call({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+    int limit = 20,
+    dynamic startAfter,
+  }) {
+    return _repository.getTransactionHistoryPaginated(
+      startDate: startDate,
+      endDate: endDate,
+      type: type,
+      warehouseLocation: warehouseLocation,
+      limit: limit,
+      startAfter: startAfter,
+    );
+  }
 }

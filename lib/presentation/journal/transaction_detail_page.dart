@@ -169,13 +169,6 @@ class TransactionDetailPage extends StatelessWidget {
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w600),
                                   ),
-                                  Text(
-                                    '${item.category} • Loại ${item.regulationClass}',
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),

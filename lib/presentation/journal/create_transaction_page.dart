@@ -5,14 +5,15 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/expression_evaluator.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/customer.dart';
 import '../../domain/entities/transaction.dart' as entity;
 import '../../domain/entities/transaction_item.dart';
 import '../auth/auth_bloc.dart';
 import '../category/category_bloc.dart';
+import '../customer/customer_bloc.dart';
 import 'transaction_bloc.dart';
 
 /// Create import/export transaction page
-/// Kho dùng để quản lý hàng tồn — nhập/xuất là nội bộ, không gắn với khách hàng.
 class CreateTransactionPage extends StatefulWidget {
   /// 'nhap' for import, 'xuat' for export
   final String type;
@@ -29,8 +30,13 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   final _formKey = GlobalKey<FormState>();
   final _sourceCtl = TextEditingController();
   final _noteCtl = TextEditingController();
+  final _customerNameCtl = TextEditingController();
 
   String _warehouseLocation = AppConstants.warehouseLocationNames.first;
+
+  // Customer selection for export
+  String _customerType = 'khach_le'; // 'khach_le' | 'khach_quen'
+  Customer? _selectedCustomer;
 
   final List<_ItemEntry> _items = [];
 
@@ -39,12 +45,17 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     super.initState();
     // Load products for the picker
     context.read<CategoryBloc>().add(const CategoryEvent.loadProducts());
+    // Load customers for export orders
+    if (widget.isExport) {
+      context.read<CustomerBloc>().add(const CustomerEvent.loadCustomers());
+    }
   }
 
   @override
   void dispose() {
     _sourceCtl.dispose();
     _noteCtl.dispose();
+    _customerNameCtl.dispose();
     for (final item in _items) {
       item.dispose();
     }
@@ -127,15 +138,12 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
         id: '',
         productId: e.product.id,
         productName: e.product.name,
-        category: e.product.category,
-        regulationClass: e.product.regulationClass,
         quantity: qty,
         unitPriceAtTime: price,
         subtotal: qty * price,
       );
     }).toList();
 
-    final sourceText = _sourceCtl.text.trim();
     // Get current user email for createdBy
     String userEmail = '';
     final authState = context.read<AuthBloc>().state;
@@ -143,14 +151,33 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
       authenticated: (auth) => userEmail = auth.user.email,
     );
 
+    // Determine customer info based on transaction type
+    String customerName;
+    String customerType;
+    String? customerId;
+
+    if (widget.isExport) {
+      customerType = _customerType;
+      if (_customerType == 'khach_quen' && _selectedCustomer != null) {
+        customerName = _selectedCustomer!.name;
+        customerId = _selectedCustomer!.id;
+      } else {
+        final nameText = _customerNameCtl.text.trim();
+        customerName = nameText.isNotEmpty ? nameText : 'Khách lẻ';
+      }
+    } else {
+      // Import: use source field
+      final sourceText = _sourceCtl.text.trim();
+      customerName = sourceText.isNotEmpty ? sourceText : 'Nhập kho';
+      customerType = 'noi_bo';
+    }
+
     final transaction = entity.Transaction(
       id: '',
       type: widget.type,
-      // Dùng trường customer để lưu nguồn/đối tác (nếu có)
-      customerName: sourceText.isNotEmpty
-          ? sourceText
-          : (widget.isExport ? 'Xuất kho' : 'Nhập kho'),
-      customerType: 'noi_bo', // Nội bộ — không phải khách hàng
+      customerId: customerId,
+      customerName: customerName,
+      customerType: customerType,
       warehouseLocation: _warehouseLocation,
       isDebt: false,
       totalValue: _totalValue,
@@ -261,24 +288,21 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // ── Source / Destination (optional) ──
-                TextFormField(
-                  controller: _sourceCtl,
-                  decoration: InputDecoration(
-                    labelText: widget.isExport
-                        ? 'Nơi nhận / Lý do xuất'
-                        : 'Nguồn nhập / Nhà cung cấp',
-                    prefixIcon: Icon(
-                      widget.isExport
-                          ? Icons.local_shipping_outlined
-                          : Icons.business_outlined,
+                // ── Customer selection (export) / Source (import) ──
+                if (widget.isExport) ...[
+                  _buildCustomerSection(),
+                ] else ...[
+                  // Import: Nguồn nhập / Nhà cung cấp
+                  TextFormField(
+                    controller: _sourceCtl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nguồn nhập / Nhà cung cấp',
+                      prefixIcon: Icon(Icons.business_outlined),
+                      hintText: 'VD: Nhà cung cấp A, Nhập bổ sung, ...',
                     ),
-                    hintText: widget.isExport
-                        ? 'VD: Chuyển kho, Trưng bày, ...'
-                        : 'VD: Nhà cung cấp A, Nhập bổ sung, ...',
+                    textInputAction: TextInputAction.next,
                   ),
-                  textInputAction: TextInputAction.next,
-                ),
+                ],
                 const SizedBox(height: 8),
 
                 const Divider(),
@@ -568,6 +592,126 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     );
   }
 
+  /// Build customer selection section for export orders
+  Widget _buildCustomerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Customer type toggle
+        Row(
+          children: [
+            const Icon(Icons.person_outline, size: 20, color: AppColors.textSecondary),
+            const SizedBox(width: 8),
+            const Text('Khách hàng', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _CustomerTypeChip(
+                label: 'Khách lẻ',
+                icon: Icons.person_outline,
+                selected: _customerType == 'khach_le',
+                onTap: () => setState(() {
+                  _customerType = 'khach_le';
+                  _selectedCustomer = null;
+                }),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CustomerTypeChip(
+                label: 'Khách quen',
+                icon: Icons.people_outline,
+                selected: _customerType == 'khach_quen',
+                onTap: () => setState(() {
+                  _customerType = 'khach_quen';
+                }),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Customer detail based on type
+        if (_customerType == 'khach_le')
+          TextFormField(
+            controller: _customerNameCtl,
+            decoration: const InputDecoration(
+              labelText: 'Tên khách (tuỳ chọn)',
+              prefixIcon: Icon(Icons.badge_outlined),
+              hintText: 'Nhập tên khách nếu cần',
+            ),
+            textInputAction: TextInputAction.next,
+          )
+        else
+          _buildCustomerDropdown(),
+      ],
+    );
+  }
+
+  /// Build dropdown to select from existing customers
+  Widget _buildCustomerDropdown() {
+    return BlocBuilder<CustomerBloc, CustomerState>(
+      builder: (context, state) {
+        return state.maybeMap(
+          customersLoaded: (loaded) {
+            final regularCustomers = loaded.customers
+                .where((c) => c.type == 'khach_quen')
+                .toList();
+            if (regularCustomers.isEmpty) {
+              return Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 18, color: AppColors.textSecondary),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Chưa có khách quen nào. Hãy thêm khách hàng trước.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            // Show all customers (not just khach_quen) for flexibility
+            final allCustomers = loaded.customers;
+            return DropdownButtonFormField<Customer>(
+              initialValue: _selectedCustomer,
+              decoration: const InputDecoration(
+                labelText: 'Chọn khách hàng *',
+                prefixIcon: Icon(Icons.person),
+              ),
+              items: allCustomers.map((c) {
+                return DropdownMenuItem(
+                  value: c,
+                  child: Text('${c.name}${c.phone != null ? ' (${c.phone})' : ''}'),
+                );
+              }).toList(),
+              onChanged: (v) => setState(() => _selectedCustomer = v),
+              validator: (v) {
+                if (_customerType == 'khach_quen' && v == null) {
+                  return 'Vui lòng chọn khách hàng';
+                }
+                return null;
+              },
+            );
+          },
+          orElse: () => const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Center(child: CircularProgressIndicator.adaptive()),
+          ),
+        );
+      },
+    );
+  }
+
   void _showProductPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -588,12 +732,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 loading: (_) => const Center(
                     child: CircularProgressIndicator.adaptive()),
                 loaded: (loaded) {
-                  // Group products by category
-                  final productsByCategory = <String, List<Product>>{};
-                  for (final p in loaded.products) {
-                    productsByCategory.putIfAbsent(p.category, () => []).add(p);
-                  }
-                  final categories = productsByCategory.keys.toList()..sort();
+                  final products = loaded.products;
 
                   return Column(
                     children: [
@@ -612,61 +751,35 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                               fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 8),
                       Expanded(
-                        child: loaded.products.isEmpty
+                        child: products.isEmpty
                             ? const Center(
                                 child: Text('Chưa có sản phẩm nào'))
                             : ListView.builder(
                                 controller: scrollController,
-                                itemCount: categories.length,
-                                itemBuilder: (context, catIndex) {
-                                  final category = categories[catIndex];
-                                  final products = productsByCategory[category]!;
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Category header
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                            16, 12, 16, 4),
-                                        child: Text(
-                                          category,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 13,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                      ),
-                                      // Products in this category
-                                      ...products.map((product) {
-                                        final alreadyAdded = _items.any(
-                                            (e) =>
-                                                e.product.id == product.id);
-                                        final price = widget.isExport
-                                            ? product.exportPrice
-                                            : product.importPrice;
-                                        return ListTile(
-                                          title: Text(product.name),
-                                          subtitle: Text(
-                                            CurrencyFormatter.format(price),
-                                          ),
-                                          trailing: alreadyAdded
-                                              ? const Icon(Icons.check,
-                                                  color: AppColors.success)
-                                              : const Icon(
-                                                  Icons.add_circle_outline),
-                                          onTap: alreadyAdded
-                                              ? null
-                                              : () {
-                                                  _addItem(product);
-                                                  Navigator.pop(context);
-                                                },
-                                        );
-                                      }),
-                                      if (catIndex < categories.length - 1)
-                                        const Divider(height: 1),
-                                    ],
+                                itemCount: products.length,
+                                itemBuilder: (context, index) {
+                                  final product = products[index];
+                                  final alreadyAdded = _items.any(
+                                      (e) => e.product.id == product.id);
+                                  final price = widget.isExport
+                                      ? product.exportPrice
+                                      : product.importPrice;
+                                  return ListTile(
+                                    title: Text(product.name),
+                                    subtitle: Text(
+                                      CurrencyFormatter.format(price),
+                                    ),
+                                    trailing: alreadyAdded
+                                        ? const Icon(Icons.check,
+                                            color: AppColors.success)
+                                        : const Icon(
+                                            Icons.add_circle_outline),
+                                    onTap: alreadyAdded
+                                        ? null
+                                        : () {
+                                            _addItem(product);
+                                            Navigator.pop(context);
+                                          },
                                   );
                                 },
                               ),
@@ -676,6 +789,62 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 },
                 actionSuccess: (_) => const Center(
                     child: CircularProgressIndicator.adaptive()),
+                paginatedLoaded: (loaded) {
+                  final products = loaded.products;
+
+                  return Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.divider,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Chọn sản phẩm',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: products.isEmpty
+                            ? const Center(
+                                child: Text('Chưa có sản phẩm nào'))
+                            : ListView.builder(
+                                controller: scrollController,
+                                itemCount: products.length,
+                                itemBuilder: (context, index) {
+                                  final product = products[index];
+                                  final alreadyAdded = _items.any(
+                                      (e) => e.product.id == product.id);
+                                  final price = widget.isExport
+                                      ? product.exportPrice
+                                      : product.importPrice;
+                                  return ListTile(
+                                    title: Text(product.name),
+                                    subtitle: Text(
+                                      CurrencyFormatter.format(price),
+                                    ),
+                                    trailing: alreadyAdded
+                                        ? const Icon(Icons.check,
+                                            color: AppColors.success)
+                                        : const Icon(
+                                            Icons.add_circle_outline),
+                                    onTap: alreadyAdded
+                                        ? null
+                                        : () {
+                                            _addItem(product);
+                                            Navigator.pop(context);
+                                          },
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  );
+                },
                 error: (e) => Center(child: Text(e.message)),
               );
             },
@@ -700,5 +869,59 @@ class _ItemEntry {
   void dispose() {
     quantityCtl.dispose();
     priceCtl.dispose();
+  }
+}
+
+class _CustomerTypeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CustomerTypeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.divider,
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? AppColors.primary : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? AppColors.primary : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

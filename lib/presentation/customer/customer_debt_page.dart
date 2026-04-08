@@ -42,6 +42,7 @@ class _CustomerDebtPageState extends State<CustomerDebtPage> {
             loading: (_) =>
                 const AppLoadingIndicator(message: 'Đang tải lịch sử...'),
             customersLoaded: (_) => const AppLoadingIndicator(),
+            paginatedLoaded: (_) => const AppLoadingIndicator(),
             debtsLoaded: (loaded) => _buildDebtHistory(
               loaded.customer,
               loaded.records,

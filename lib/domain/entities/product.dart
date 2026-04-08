@@ -4,8 +4,8 @@ import 'package:equatable/equatable.dart';
 class Product extends Equatable {
   final String id;
   final String name;
-  final String category;
-  final String regulationClass; // A, B, C per NĐ 137
+  final String category; // kept for backward compat, default empty
+  final String regulationClass; // kept for backward compat, default empty
   final String unit;
   final double importPrice;
   final double exportPrice;
@@ -17,8 +17,8 @@ class Product extends Equatable {
   const Product({
     required this.id,
     required this.name,
-    required this.category,
-    required this.regulationClass,
+    this.category = '',
+    this.regulationClass = '',
     required this.unit,
     required this.importPrice,
     required this.exportPrice,
@@ -32,8 +32,6 @@ class Product extends Equatable {
   List<Object?> get props => [
     id,
     name,
-    category,
-    regulationClass,
     unit,
     importPrice,
     exportPrice,
@@ -41,4 +39,3 @@ class Product extends Equatable {
     updatedBy,
   ];
 }
-

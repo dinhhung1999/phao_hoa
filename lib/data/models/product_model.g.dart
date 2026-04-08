@@ -10,8 +10,8 @@ _ProductModel _$ProductModelFromJson(Map<String, dynamic> json) =>
     _ProductModel(
       id: json['id'] as String? ?? '',
       name: json['name'] as String,
-      category: json['category'] as String,
-      regulationClass: json['regulation_class'] as String,
+      category: json['category'] as String? ?? '',
+      regulationClass: json['regulation_class'] as String? ?? '',
       unit: json['unit'] as String,
       importPrice: (json['import_price'] as num).toDouble(),
       exportPrice: (json['export_price'] as num).toDouble(),

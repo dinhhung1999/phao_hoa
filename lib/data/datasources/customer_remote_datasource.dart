@@ -135,4 +135,25 @@ class CustomerRemoteDatasource {
       'updated_at': FieldValue.serverTimestamp(),
     });
   }
+
+  /// Get customers with cursor-based pagination
+  Future<(List<CustomerModel>, DocumentSnapshot?)> getCustomersPaginated({
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    Query query = _collection
+        .where('is_active', isEqualTo: true)
+        .orderBy('name')
+        .limit(limit);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    final snapshot = await query.get();
+    final models = snapshot.docs.map((d) => CustomerModel.fromFirestore(d)).toList();
+    final lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+
+    return (models, lastDoc);
+  }
 }

@@ -8,10 +8,11 @@ import '../../core/widgets/error_widget.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../domain/entities/customer.dart';
 import '../auth/auth_bloc.dart';
+import 'contact_picker_page.dart';
 import 'customer_bloc.dart';
 import 'customer_debt_page.dart';
 
-/// Customer list page — accessed from journal appbar
+/// Customer list page — with pagination + pull-to-refresh
 class CustomerListPage extends StatefulWidget {
   final bool showAppBar;
 
@@ -22,12 +23,35 @@ class CustomerListPage extends StatefulWidget {
 }
 
 class _CustomerListPageState extends State<CustomerListPage> {
+  final ScrollController _scrollCtl = ScrollController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    context.read<CustomerBloc>().add(const CustomerEvent.loadCustomers());
+    context.read<CustomerBloc>().add(const CustomerEvent.loadCustomersPaginated());
+    _scrollCtl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtl
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<CustomerBloc>().add(const CustomerEvent.loadMoreCustomers());
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollCtl.hasClients) return false;
+    final maxScroll = _scrollCtl.position.maxScrollExtent;
+    final currentScroll = _scrollCtl.offset;
+    return currentScroll >= (maxScroll - 200);
   }
 
   @override
@@ -38,7 +62,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
           : null,
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_customer',
-        onPressed: () => _showAddCustomerDialog(context),
+        onPressed: () => _showAddOptions(context),
         child: const Icon(Icons.person_add),
       ),
       body: BlocConsumer<CustomerBloc, CustomerState>(
@@ -58,14 +82,17 @@ class _CustomerListPageState extends State<CustomerListPage> {
           return state.map(
             initial: (_) => const AppLoadingIndicator(),
             loading: (_) => const AppLoadingIndicator(),
-            customersLoaded: (loaded) => _buildSearchableList(loaded.customers),
+            customersLoaded: (loaded) => _buildSearchableList(loaded.customers, false, false),
+            paginatedLoaded: (loaded) => _buildSearchableList(
+              loaded.customers, loaded.hasMore, loaded.isLoadingMore,
+            ),
             debtsLoaded: (_) => const AppLoadingIndicator(),
             actionSuccess: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
               onRetry: () => context
                   .read<CustomerBloc>()
-                  .add(const CustomerEvent.loadCustomers()),
+                  .add(const CustomerEvent.loadCustomersPaginated()),
             ),
           );
         },
@@ -73,7 +100,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
-  Widget _buildSearchableList(List<Customer> customers) {
+  Widget _buildSearchableList(
+    List<Customer> customers, bool hasMore, bool isLoadingMore,
+  ) {
     final filtered = _searchQuery.isEmpty
         ? customers
         : customers.where((c) {
@@ -109,21 +138,31 @@ class _CustomerListPageState extends State<CustomerListPage> {
             onChanged: (v) => setState(() => _searchQuery = v),
           ),
         ),
-        Expanded(child: _buildList(filtered)),
+        Expanded(child: _buildList(filtered, hasMore, isLoadingMore)),
       ],
     );
   }
 
-  Widget _buildList(List<Customer> customers) {
+  Widget _buildList(List<Customer> customers, bool hasMore, bool isLoadingMore) {
     if (customers.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.people_outline, size: 64, color: AppColors.textHint),
-            SizedBox(height: 12),
-            Text('Chưa có khách hàng',
-                style: TextStyle(color: AppColors.textSecondary)),
+      return RefreshIndicator(
+        onRefresh: () async {
+          context.read<CustomerBloc>().add(const CustomerEvent.refreshCustomers());
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: AppColors.textHint),
+                  SizedBox(height: 12),
+                  Text('Chưa có khách hàng',
+                      style: TextStyle(color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -131,13 +170,22 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<CustomerBloc>().add(const CustomerEvent.loadCustomers());
+        context.read<CustomerBloc>().add(const CustomerEvent.refreshCustomers());
       },
       child: ListView.separated(
+        controller: _scrollCtl,
         padding: const EdgeInsets.all(16),
-        itemCount: customers.length,
+        itemCount: customers.length + (hasMore ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
+          if (index >= customers.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: CircularProgressIndicator.adaptive(),
+              ),
+            );
+          }
           final customer = customers[index];
           return Card(
             child: ListTile(
@@ -370,6 +418,76 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
+  void _showAddOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Thêm khách hàng',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  child: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                ),
+                title: const Text('Nhập tay',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Tự nhập tên, SĐT và loại khách hàng'),
+                trailing: const Icon(Icons.chevron_right),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showAddCustomerDialog(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.info.withValues(alpha: 0.1),
+                  child: const Icon(Icons.contacts_outlined, color: AppColors.info),
+                ),
+                title: const Text('Thêm từ danh bạ',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Chọn một hoặc nhiều liên hệ từ điện thoại'),
+                trailing: const Icon(Icons.chevron_right),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _importFromContacts(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showAddCustomerDialog(BuildContext context) {
     final nameCtl = TextEditingController();
     final phoneCtl = TextEditingController();
@@ -460,6 +578,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
       ),
     );
   }
+
   void _showEditCustomerDialog(BuildContext context, Customer customer) {
     final nameCtl = TextEditingController(text: customer.name);
     final phoneCtl = TextEditingController(text: customer.phone ?? '');
@@ -532,6 +651,13 @@ class _CustomerListPageState extends State<CustomerListPage> {
                   isActive: customer.isActive,
                   createdAt: customer.createdAt,
                   updatedAt: DateTime.now(),
+                  updatedBy: () {
+                    String? email;
+                    context.read<AuthBloc>().state.mapOrNull(
+                      authenticated: (auth) => email = auth.user.email,
+                    );
+                    return email;
+                  }(),
                 );
                 context
                     .read<CustomerBloc>()
@@ -612,9 +738,83 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
-  void _handleSettleAll(BuildContext context, Customer customer) {
-    context.read<CustomerBloc>().add(
-          CustomerEvent.settleAll(customer.id),
-        );
+  Future<void> _handleSettleAll(BuildContext context, Customer customer) async {
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: 'Tất toán công nợ',
+      message:
+          'Bạn có chắc muốn tất toán toàn bộ công nợ của "${customer.name}"?\n\n'
+          'Số tiền: ${CurrencyFormatter.format(customer.totalDebt)}',
+      confirmText: 'Tất toán',
+      confirmColor: AppColors.success,
+    );
+    if (confirmed && context.mounted) {
+      context.read<CustomerBloc>().add(
+            CustomerEvent.settleAll(customer.id),
+          );
+    }
+  }
+
+  /// Collect existing phone numbers and navigate to contact picker
+  Future<void> _importFromContacts(BuildContext context) async {
+    // Collect existing phone numbers from current state for duplicate detection
+    final state = context.read<CustomerBloc>().state;
+    final Set<String> existingPhones = {};
+
+    state.mapOrNull(
+      paginatedLoaded: (loaded) {
+        for (final c in loaded.customers) {
+          if (c.phone != null && c.phone!.isNotEmpty) {
+            existingPhones.add(_normalizePhoneForCompare(c.phone!));
+          }
+        }
+      },
+      customersLoaded: (loaded) {
+        for (final c in loaded.customers) {
+          if (c.phone != null && c.phone!.isNotEmpty) {
+            existingPhones.add(_normalizePhoneForCompare(c.phone!));
+          }
+        }
+      },
+    );
+
+    if (!context.mounted) return;
+
+    final result = await Navigator.of(context).push<List<Customer>>(
+      MaterialPageRoute(
+        builder: (_) => ContactPickerPage(existingPhones: existingPhones),
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && context.mounted) {
+      // Inject updatedBy from auth
+      String? userEmail;
+      context.read<AuthBloc>().state.mapOrNull(
+        authenticated: (auth) => userEmail = auth.user.email,
+      );
+
+      final customersWithAudit = result.map((c) => Customer(
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        type: c.type,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        updatedBy: userEmail,
+      )).toList();
+
+      context.read<CustomerBloc>().add(
+        CustomerEvent.addMultipleCustomers(customersWithAudit),
+      );
+    }
+  }
+
+  /// Normalize phone for comparison
+  String _normalizePhoneForCompare(String phone) {
+    String normalized = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (normalized.startsWith('+84')) {
+      normalized = '0${normalized.substring(3)}';
+    }
+    return normalized;
   }
 }

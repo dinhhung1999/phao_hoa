@@ -16,4 +16,12 @@ sealed class CustomerEvent with _$CustomerEvent {
   const factory CustomerEvent.settleAll(String customerId) = _SettleAll;
   const factory CustomerEvent.updateCustomer(Customer customer) = _UpdateCustomer;
   const factory CustomerEvent.deleteCustomer(String customerId) = _DeleteCustomer;
+
+  // Pagination events
+  const factory CustomerEvent.loadCustomersPaginated() = _LoadCustomersPaginated;
+  const factory CustomerEvent.loadMoreCustomers() = _LoadMoreCustomers;
+  const factory CustomerEvent.refreshCustomers() = _RefreshCustomers;
+
+  // Batch import from contacts
+  const factory CustomerEvent.addMultipleCustomers(List<Customer> customers) = _AddMultipleCustomers;
 }

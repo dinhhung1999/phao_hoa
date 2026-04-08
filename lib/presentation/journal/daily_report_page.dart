@@ -134,6 +134,8 @@ class _DailyReportPageState extends State<DailyReportPage> {
                       message: 'Đang tải báo cáo...'),
                   historyLoaded: (loaded) =>
                       _buildReport(loaded.transactions),
+                  paginatedHistoryLoaded: (loaded) =>
+                      _buildReport(loaded.transactions),
                   created: (_) => const AppLoadingIndicator(),
                   error: (e) => AppErrorWidget(
                     message: e.message,

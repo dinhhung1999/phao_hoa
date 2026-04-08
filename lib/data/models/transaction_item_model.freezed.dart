@@ -216,13 +216,13 @@ return $default(_that.id,_that.productId,_that.productName,_that.category,_that.
 @JsonSerializable()
 
 class _TransactionItemModel implements TransactionItemModel {
-  const _TransactionItemModel({this.id = '', @JsonKey(name: 'product_id') required this.productId, @JsonKey(name: 'product_name') required this.productName, required this.category, @JsonKey(name: 'regulation_class') required this.regulationClass, required this.quantity, @JsonKey(name: 'unit_price_at_time') required this.unitPriceAtTime, required this.subtotal});
+  const _TransactionItemModel({this.id = '', @JsonKey(name: 'product_id') required this.productId, @JsonKey(name: 'product_name') required this.productName, this.category = '', @JsonKey(name: 'regulation_class') this.regulationClass = '', required this.quantity, @JsonKey(name: 'unit_price_at_time') required this.unitPriceAtTime, required this.subtotal});
   factory _TransactionItemModel.fromJson(Map<String, dynamic> json) => _$TransactionItemModelFromJson(json);
 
 @override@JsonKey() final  String id;
 @override@JsonKey(name: 'product_id') final  String productId;
 @override@JsonKey(name: 'product_name') final  String productName;
-@override final  String category;
+@override@JsonKey() final  String category;
 @override@JsonKey(name: 'regulation_class') final  String regulationClass;
 @override final  int quantity;
 @override@JsonKey(name: 'unit_price_at_time') final  double unitPriceAtTime;

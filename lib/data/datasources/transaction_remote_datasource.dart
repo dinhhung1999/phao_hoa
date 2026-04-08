@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_paths.dart';
@@ -9,6 +10,37 @@ class TransactionRemoteDatasource {
   final FirebaseFirestore _firestore;
 
   TransactionRemoteDatasource(this._firestore);
+
+  /// Retry helper with exponential backoff for Firestore operations
+  Future<T> _retryOperation<T>(Future<T> Function() operation, {int maxRetries = 3}) async {
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation().timeout(const Duration(seconds: 30));
+      } on FirebaseException catch (e) {
+        if (e.code == 'unavailable' && attempt < maxRetries - 1) {
+          // Exponential backoff: 1s, 2s, 4s
+          await Future.delayed(Duration(seconds: 1 << attempt));
+          continue;
+        }
+        rethrow;
+      } on TimeoutException {
+        if (attempt < maxRetries - 1) {
+          await Future.delayed(Duration(seconds: 1 << attempt));
+          continue;
+        }
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'timeout',
+          message: 'Kết nối quá thời gian. Vui lòng kiểm tra mạng và thử lại.',
+        );
+      }
+    }
+    throw FirebaseException(
+      plugin: 'cloud_firestore',
+      code: 'unavailable',
+      message: 'Không thể kết nối đến máy chủ sau nhiều lần thử. Vui lòng kiểm tra mạng.',
+    );
+  }
 
   CollectionReference get _txCollection =>
       _firestore.collection(FirestorePaths.transactions);
@@ -45,7 +77,7 @@ class TransactionRemoteDatasource {
     }
 
     // 3. Update inventory (decrease stock at location)
-    // Use set+merge to handle case where doc or field doesn't exist yet
+    // Use nested map (NOT dot notation) with set+merge to correctly update nested fields
     for (final item in items) {
       final invRef = _invCollection.doc(item.productId);
       batch.set(
@@ -53,8 +85,9 @@ class TransactionRemoteDatasource {
         {
           'product_id': item.productId,
           'product_name': item.productName,
-          'stock_by_location.$locationKey':
-              FieldValue.increment(-item.quantity),
+          'stock_by_location': {
+            locationKey: FieldValue.increment(-item.quantity),
+          },
           'total_quantity': FieldValue.increment(-item.quantity),
           'last_updated': FieldValue.serverTimestamp(),
         },
@@ -85,7 +118,7 @@ class TransactionRemoteDatasource {
       });
     }
 
-    await batch.commit();
+    await _retryOperation(() => batch.commit());
     return txId;
   }
 
@@ -111,7 +144,7 @@ class TransactionRemoteDatasource {
     }
 
     // 3. Update inventory (increase stock at location)
-    // Use dot notation for nested field to work correctly with FieldValue.increment
+    // Use nested map (NOT dot notation) with set+merge to correctly update nested fields
     for (final item in items) {
       final invRef = _invCollection.doc(item.productId);
       batch.set(
@@ -119,7 +152,9 @@ class TransactionRemoteDatasource {
         {
           'product_id': item.productId,
           'product_name': item.productName,
-          'stock_by_location.$locationKey': FieldValue.increment(item.quantity),
+          'stock_by_location': {
+            locationKey: FieldValue.increment(item.quantity),
+          },
           'total_quantity': FieldValue.increment(item.quantity),
           'last_updated': FieldValue.serverTimestamp(),
         },
@@ -127,7 +162,7 @@ class TransactionRemoteDatasource {
       );
     }
 
-    await batch.commit();
+    await _retryOperation(() => batch.commit());
     return txId;
   }
 
@@ -175,5 +210,44 @@ class TransactionRemoteDatasource {
         .toList();
 
     return (tx, items);
+  }
+
+  /// Get transaction history with cursor-based pagination
+  Future<(List<TransactionModel>, DocumentSnapshot?)> getTransactionHistoryPaginated({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? type,
+    String? warehouseLocation,
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    Query query = _txCollection.orderBy('created_at', descending: true);
+
+    if (type != null) {
+      query = query.where('type', isEqualTo: type);
+    }
+    if (warehouseLocation != null) {
+      query = query.where('warehouse_location', isEqualTo: warehouseLocation);
+    }
+    if (startDate != null) {
+      query = query.where('created_at', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+    }
+    if (endDate != null) {
+      query = query.where('created_at', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+    }
+
+    query = query.limit(limit);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    final snapshot = await query.get();
+    final models = snapshot.docs
+        .map((d) => TransactionModel.fromFirestore(d))
+        .toList();
+    final lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+
+    return (models, lastDoc);
   }
 }

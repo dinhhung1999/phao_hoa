@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../core/constants/app_constants.dart';
 import '../../domain/entities/warehouse_stock.dart';
 import '../../domain/usecases/inventory/inventory_usecases.dart';
 
@@ -27,6 +28,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
   Future<void> _onLoad(Emitter<DashboardState> emit) async {
     emit(const DashboardState.loading());
+    // Reload warehouse names from Firestore to pick up renames from other users
+    await AppConstants.loadWarehouseNames();
     final stocksResult = await _getDashboardSummary();
     final valueResult = await _getTotalInventoryValue();
     stocksResult.fold(

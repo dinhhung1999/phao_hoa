@@ -55,13 +55,16 @@ extension TransactionEventPatterns on TransactionEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadHistory value)?  loadHistory,TResult Function( _CreateExport value)?  createExport,TResult Function( _CreateImport value)?  createImport,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadHistory value)?  loadHistory,TResult Function( _CreateExport value)?  createExport,TResult Function( _CreateImport value)?  createImport,TResult Function( _LoadHistoryPaginated value)?  loadHistoryPaginated,TResult Function( _LoadMoreHistory value)?  loadMoreHistory,TResult Function( _RefreshHistory value)?  refreshHistory,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
 return loadHistory(_that);case _CreateExport() when createExport != null:
 return createExport(_that);case _CreateImport() when createImport != null:
-return createImport(_that);case _:
+return createImport(_that);case _LoadHistoryPaginated() when loadHistoryPaginated != null:
+return loadHistoryPaginated(_that);case _LoadMoreHistory() when loadMoreHistory != null:
+return loadMoreHistory(_that);case _RefreshHistory() when refreshHistory != null:
+return refreshHistory(_that);case _:
   return orElse();
 
 }
@@ -79,13 +82,16 @@ return createImport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadHistory value)  loadHistory,required TResult Function( _CreateExport value)  createExport,required TResult Function( _CreateImport value)  createImport,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadHistory value)  loadHistory,required TResult Function( _CreateExport value)  createExport,required TResult Function( _CreateImport value)  createImport,required TResult Function( _LoadHistoryPaginated value)  loadHistoryPaginated,required TResult Function( _LoadMoreHistory value)  loadMoreHistory,required TResult Function( _RefreshHistory value)  refreshHistory,}){
 final _that = this;
 switch (_that) {
 case _LoadHistory():
 return loadHistory(_that);case _CreateExport():
 return createExport(_that);case _CreateImport():
-return createImport(_that);}
+return createImport(_that);case _LoadHistoryPaginated():
+return loadHistoryPaginated(_that);case _LoadMoreHistory():
+return loadMoreHistory(_that);case _RefreshHistory():
+return refreshHistory(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -99,13 +105,16 @@ return createImport(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadHistory value)?  loadHistory,TResult? Function( _CreateExport value)?  createExport,TResult? Function( _CreateImport value)?  createImport,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadHistory value)?  loadHistory,TResult? Function( _CreateExport value)?  createExport,TResult? Function( _CreateImport value)?  createImport,TResult? Function( _LoadHistoryPaginated value)?  loadHistoryPaginated,TResult? Function( _LoadMoreHistory value)?  loadMoreHistory,TResult? Function( _RefreshHistory value)?  refreshHistory,}){
 final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
 return loadHistory(_that);case _CreateExport() when createExport != null:
 return createExport(_that);case _CreateImport() when createImport != null:
-return createImport(_that);case _:
+return createImport(_that);case _LoadHistoryPaginated() when loadHistoryPaginated != null:
+return loadHistoryPaginated(_that);case _LoadMoreHistory() when loadMoreHistory != null:
+return loadMoreHistory(_that);case _RefreshHistory() when refreshHistory != null:
+return refreshHistory(_that);case _:
   return null;
 
 }
@@ -122,12 +131,15 @@ return createImport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistoryPaginated,TResult Function()?  loadMoreHistory,TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  refreshHistory,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
 return loadHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _CreateExport() when createExport != null:
 return createExport(_that.transaction,_that.items);case _CreateImport() when createImport != null:
-return createImport(_that.transaction,_that.items);case _:
+return createImport(_that.transaction,_that.items);case _LoadHistoryPaginated() when loadHistoryPaginated != null:
+return loadHistoryPaginated(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _LoadMoreHistory() when loadMoreHistory != null:
+return loadMoreHistory();case _RefreshHistory() when refreshHistory != null:
+return refreshHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _:
   return orElse();
 
 }
@@ -145,12 +157,15 @@ return createImport(_that.transaction,_that.items);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  loadHistory,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createExport,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createImport,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  loadHistory,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createExport,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createImport,required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  loadHistoryPaginated,required TResult Function()  loadMoreHistory,required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  refreshHistory,}) {final _that = this;
 switch (_that) {
 case _LoadHistory():
 return loadHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _CreateExport():
 return createExport(_that.transaction,_that.items);case _CreateImport():
-return createImport(_that.transaction,_that.items);}
+return createImport(_that.transaction,_that.items);case _LoadHistoryPaginated():
+return loadHistoryPaginated(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _LoadMoreHistory():
+return loadMoreHistory();case _RefreshHistory():
+return refreshHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -164,12 +179,15 @@ return createImport(_that.transaction,_that.items);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistoryPaginated,TResult? Function()?  loadMoreHistory,TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  refreshHistory,}) {final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
 return loadHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _CreateExport() when createExport != null:
 return createExport(_that.transaction,_that.items);case _CreateImport() when createImport != null:
-return createImport(_that.transaction,_that.items);case _:
+return createImport(_that.transaction,_that.items);case _LoadHistoryPaginated() when loadHistoryPaginated != null:
+return loadHistoryPaginated(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _LoadMoreHistory() when loadMoreHistory != null:
+return loadMoreHistory();case _RefreshHistory() when refreshHistory != null:
+return refreshHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _:
   return null;
 
 }
@@ -398,6 +416,182 @@ as List<TransactionItem>,
 }
 
 /// @nodoc
+
+
+class _LoadHistoryPaginated implements TransactionEvent {
+  const _LoadHistoryPaginated({this.startDate, this.endDate, this.type, this.warehouseLocation});
+  
+
+ final  DateTime? startDate;
+ final  DateTime? endDate;
+ final  String? type;
+ final  String? warehouseLocation;
+
+/// Create a copy of TransactionEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$LoadHistoryPaginatedCopyWith<_LoadHistoryPaginated> get copyWith => __$LoadHistoryPaginatedCopyWithImpl<_LoadHistoryPaginated>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoadHistoryPaginated&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.type, type) || other.type == type)&&(identical(other.warehouseLocation, warehouseLocation) || other.warehouseLocation == warehouseLocation));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,startDate,endDate,type,warehouseLocation);
+
+@override
+String toString() {
+  return 'TransactionEvent.loadHistoryPaginated(startDate: $startDate, endDate: $endDate, type: $type, warehouseLocation: $warehouseLocation)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$LoadHistoryPaginatedCopyWith<$Res> implements $TransactionEventCopyWith<$Res> {
+  factory _$LoadHistoryPaginatedCopyWith(_LoadHistoryPaginated value, $Res Function(_LoadHistoryPaginated) _then) = __$LoadHistoryPaginatedCopyWithImpl;
+@useResult
+$Res call({
+ DateTime? startDate, DateTime? endDate, String? type, String? warehouseLocation
+});
+
+
+
+
+}
+/// @nodoc
+class __$LoadHistoryPaginatedCopyWithImpl<$Res>
+    implements _$LoadHistoryPaginatedCopyWith<$Res> {
+  __$LoadHistoryPaginatedCopyWithImpl(this._self, this._then);
+
+  final _LoadHistoryPaginated _self;
+  final $Res Function(_LoadHistoryPaginated) _then;
+
+/// Create a copy of TransactionEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? startDate = freezed,Object? endDate = freezed,Object? type = freezed,Object? warehouseLocation = freezed,}) {
+  return _then(_LoadHistoryPaginated(
+startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String?,warehouseLocation: freezed == warehouseLocation ? _self.warehouseLocation : warehouseLocation // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _LoadMoreHistory implements TransactionEvent {
+  const _LoadMoreHistory();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoadMoreHistory);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'TransactionEvent.loadMoreHistory()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _RefreshHistory implements TransactionEvent {
+  const _RefreshHistory({this.startDate, this.endDate, this.type, this.warehouseLocation});
+  
+
+ final  DateTime? startDate;
+ final  DateTime? endDate;
+ final  String? type;
+ final  String? warehouseLocation;
+
+/// Create a copy of TransactionEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$RefreshHistoryCopyWith<_RefreshHistory> get copyWith => __$RefreshHistoryCopyWithImpl<_RefreshHistory>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RefreshHistory&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.type, type) || other.type == type)&&(identical(other.warehouseLocation, warehouseLocation) || other.warehouseLocation == warehouseLocation));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,startDate,endDate,type,warehouseLocation);
+
+@override
+String toString() {
+  return 'TransactionEvent.refreshHistory(startDate: $startDate, endDate: $endDate, type: $type, warehouseLocation: $warehouseLocation)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$RefreshHistoryCopyWith<$Res> implements $TransactionEventCopyWith<$Res> {
+  factory _$RefreshHistoryCopyWith(_RefreshHistory value, $Res Function(_RefreshHistory) _then) = __$RefreshHistoryCopyWithImpl;
+@useResult
+$Res call({
+ DateTime? startDate, DateTime? endDate, String? type, String? warehouseLocation
+});
+
+
+
+
+}
+/// @nodoc
+class __$RefreshHistoryCopyWithImpl<$Res>
+    implements _$RefreshHistoryCopyWith<$Res> {
+  __$RefreshHistoryCopyWithImpl(this._self, this._then);
+
+  final _RefreshHistory _self;
+  final $Res Function(_RefreshHistory) _then;
+
+/// Create a copy of TransactionEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? startDate = freezed,Object? endDate = freezed,Object? type = freezed,Object? warehouseLocation = freezed,}) {
+  return _then(_RefreshHistory(
+startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String?,warehouseLocation: freezed == warehouseLocation ? _self.warehouseLocation : warehouseLocation // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$TransactionState {
 
 
@@ -441,7 +635,7 @@ extension TransactionStatePatterns on TransactionState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _HistoryLoaded value)?  historyLoaded,TResult Function( _Created value)?  created,TResult Function( _Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _HistoryLoaded value)?  historyLoaded,TResult Function( _Created value)?  created,TResult Function( _Error value)?  error,TResult Function( _PaginatedHistoryLoaded value)?  paginatedHistoryLoaded,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -449,7 +643,8 @@ return initial(_that);case _Loading() when loading != null:
 return loading(_that);case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that);case _Created() when created != null:
 return created(_that);case _Error() when error != null:
-return error(_that);case _:
+return error(_that);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return paginatedHistoryLoaded(_that);case _:
   return orElse();
 
 }
@@ -467,7 +662,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _HistoryLoaded value)  historyLoaded,required TResult Function( _Created value)  created,required TResult Function( _Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _HistoryLoaded value)  historyLoaded,required TResult Function( _Created value)  created,required TResult Function( _Error value)  error,required TResult Function( _PaginatedHistoryLoaded value)  paginatedHistoryLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial():
@@ -475,7 +670,8 @@ return initial(_that);case _Loading():
 return loading(_that);case _HistoryLoaded():
 return historyLoaded(_that);case _Created():
 return created(_that);case _Error():
-return error(_that);}
+return error(_that);case _PaginatedHistoryLoaded():
+return paginatedHistoryLoaded(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -489,7 +685,7 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _HistoryLoaded value)?  historyLoaded,TResult? Function( _Created value)?  created,TResult? Function( _Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _HistoryLoaded value)?  historyLoaded,TResult? Function( _Created value)?  created,TResult? Function( _Error value)?  error,TResult? Function( _PaginatedHistoryLoaded value)?  paginatedHistoryLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -497,7 +693,8 @@ return initial(_that);case _Loading() when loading != null:
 return loading(_that);case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that);case _Created() when created != null:
 return created(_that);case _Error() when error != null:
-return error(_that);case _:
+return error(_that);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return paginatedHistoryLoaded(_that);case _:
   return null;
 
 }
@@ -514,14 +711,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<entity.Transaction> transactions)?  historyLoaded,TResult Function( String transactionId)?  created,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<entity.Transaction> transactions)?  historyLoaded,TResult Function( String transactionId)?  created,TResult Function( String message)?  error,TResult Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)?  paginatedHistoryLoaded,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
 return loading();case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that.transactions);case _Created() when created != null:
 return created(_that.transactionId);case _Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.startDate,_that.endDate,_that.type,_that.warehouseLocation,_that.error);case _:
   return orElse();
 
 }
@@ -539,14 +737,15 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<entity.Transaction> transactions)  historyLoaded,required TResult Function( String transactionId)  created,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<entity.Transaction> transactions)  historyLoaded,required TResult Function( String transactionId)  created,required TResult Function( String message)  error,required TResult Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)  paginatedHistoryLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial():
 return initial();case _Loading():
 return loading();case _HistoryLoaded():
 return historyLoaded(_that.transactions);case _Created():
 return created(_that.transactionId);case _Error():
-return error(_that.message);}
+return error(_that.message);case _PaginatedHistoryLoaded():
+return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.startDate,_that.endDate,_that.type,_that.warehouseLocation,_that.error);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -560,14 +759,15 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<entity.Transaction> transactions)?  historyLoaded,TResult? Function( String transactionId)?  created,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<entity.Transaction> transactions)?  historyLoaded,TResult? Function( String transactionId)?  created,TResult? Function( String message)?  error,TResult? Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)?  paginatedHistoryLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
 return loading();case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that.transactions);case _Created() when created != null:
 return created(_that.transactionId);case _Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.startDate,_that.endDate,_that.type,_that.warehouseLocation,_that.error);case _:
   return null;
 
 }
@@ -837,6 +1037,95 @@ class __$ErrorCopyWithImpl<$Res>
   return _then(_Error(
 null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _PaginatedHistoryLoaded implements TransactionState {
+  const _PaginatedHistoryLoaded({required final  List<entity.Transaction> transactions, required this.hasMore, this.isLoadingMore = false, this.lastDocument, this.startDate, this.endDate, this.type, this.warehouseLocation, this.error}): _transactions = transactions;
+  
+
+ final  List<entity.Transaction> _transactions;
+ List<entity.Transaction> get transactions {
+  if (_transactions is EqualUnmodifiableListView) return _transactions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_transactions);
+}
+
+ final  bool hasMore;
+@JsonKey() final  bool isLoadingMore;
+ final  dynamic lastDocument;
+// Preserve current filter params
+ final  DateTime? startDate;
+ final  DateTime? endDate;
+ final  String? type;
+ final  String? warehouseLocation;
+ final  String? error;
+
+/// Create a copy of TransactionState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PaginatedHistoryLoadedCopyWith<_PaginatedHistoryLoaded> get copyWith => __$PaginatedHistoryLoadedCopyWithImpl<_PaginatedHistoryLoaded>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PaginatedHistoryLoaded&&const DeepCollectionEquality().equals(other._transactions, _transactions)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&const DeepCollectionEquality().equals(other.lastDocument, lastDocument)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.type, type) || other.type == type)&&(identical(other.warehouseLocation, warehouseLocation) || other.warehouseLocation == warehouseLocation)&&(identical(other.error, error) || other.error == error));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_transactions),hasMore,isLoadingMore,const DeepCollectionEquality().hash(lastDocument),startDate,endDate,type,warehouseLocation,error);
+
+@override
+String toString() {
+  return 'TransactionState.paginatedHistoryLoaded(transactions: $transactions, hasMore: $hasMore, isLoadingMore: $isLoadingMore, lastDocument: $lastDocument, startDate: $startDate, endDate: $endDate, type: $type, warehouseLocation: $warehouseLocation, error: $error)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PaginatedHistoryLoadedCopyWith<$Res> implements $TransactionStateCopyWith<$Res> {
+  factory _$PaginatedHistoryLoadedCopyWith(_PaginatedHistoryLoaded value, $Res Function(_PaginatedHistoryLoaded) _then) = __$PaginatedHistoryLoadedCopyWithImpl;
+@useResult
+$Res call({
+ List<entity.Transaction> transactions, bool hasMore, bool isLoadingMore, dynamic lastDocument, DateTime? startDate, DateTime? endDate, String? type, String? warehouseLocation, String? error
+});
+
+
+
+
+}
+/// @nodoc
+class __$PaginatedHistoryLoadedCopyWithImpl<$Res>
+    implements _$PaginatedHistoryLoadedCopyWith<$Res> {
+  __$PaginatedHistoryLoadedCopyWithImpl(this._self, this._then);
+
+  final _PaginatedHistoryLoaded _self;
+  final $Res Function(_PaginatedHistoryLoaded) _then;
+
+/// Create a copy of TransactionState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? transactions = null,Object? hasMore = null,Object? isLoadingMore = null,Object? lastDocument = freezed,Object? startDate = freezed,Object? endDate = freezed,Object? type = freezed,Object? warehouseLocation = freezed,Object? error = freezed,}) {
+  return _then(_PaginatedHistoryLoaded(
+transactions: null == transactions ? _self._transactions : transactions // ignore: cast_nullable_to_non_nullable
+as List<entity.Transaction>,hasMore: null == hasMore ? _self.hasMore : hasMore // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
+as bool,lastDocument: freezed == lastDocument ? _self.lastDocument : lastDocument // ignore: cast_nullable_to_non_nullable
+as dynamic,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String?,warehouseLocation: freezed == warehouseLocation ? _self.warehouseLocation : warehouseLocation // ignore: cast_nullable_to_non_nullable
+as String?,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

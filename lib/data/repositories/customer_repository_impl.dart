@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
+import '../../core/models/paginated_result.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/debt_record.dart';
 import '../../domain/repositories/customer_repository.dart';
@@ -106,6 +108,26 @@ class CustomerRepositoryImpl implements CustomerRepository {
     try {
       await _datasource.deactivateCustomer(customerId);
       return const Right(null);
+    } catch (e) {
+      return Left(FirestoreFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, PaginatedResult<Customer>>> getCustomersPaginated({
+    int limit = 20,
+    dynamic startAfter,
+  }) async {
+    try {
+      final (models, lastDoc) = await _datasource.getCustomersPaginated(
+        limit: limit,
+        startAfter: startAfter as DocumentSnapshot?,
+      );
+      return Right(PaginatedResult(
+        items: models.map(_toEntity).toList(),
+        lastDocument: lastDoc,
+        hasMore: models.length >= limit,
+      ));
     } catch (e) {
       return Left(FirestoreFailure(e.toString()));
     }

@@ -65,14 +65,10 @@ class ProductDetailPage extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _chip(product.category),
-                        const SizedBox(width: 8),
-                        _chip('Loại ${product.regulationClass}'),
-                      ],
-                    ),
+                    if (product.unit.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _chip(product.unit),
+                    ],
                   ],
                 ),
               ),

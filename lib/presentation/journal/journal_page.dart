@@ -7,6 +7,7 @@ import '../../core/utils/date_formatter.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/error_widget.dart';
 import '../category/category_bloc.dart';
+import '../customer/customer_bloc.dart';
 import '../dashboard/dashboard_bloc.dart';
 import 'create_transaction_page.dart';
 import 'transaction_detail_page.dart';
@@ -21,14 +22,43 @@ class JournalPage extends StatefulWidget {
 }
 
 class _JournalPageState extends State<JournalPage> {
+  final ScrollController _scrollCtl = ScrollController();
+
   // Filter state
   bool _showFilters = false;
   String? _filterType; // null = all, 'nhap', 'xuat'
   String? _filterWarehouse;
   DateTimeRange? _filterDateRange;
 
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtl
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<TransactionBloc>().add(const TransactionEvent.loadMoreHistory());
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollCtl.hasClients) return false;
+    final maxScroll = _scrollCtl.position.maxScrollExtent;
+    final currentScroll = _scrollCtl.offset;
+    return currentScroll >= (maxScroll - 200);
+  }
+
   void _applyFilters() {
-    context.read<TransactionBloc>().add(TransactionEvent.loadHistory(
+    context.read<TransactionBloc>().add(TransactionEvent.loadHistoryPaginated(
           startDate: _filterDateRange?.start,
           endDate: _filterDateRange?.end,
           type: _filterType,
@@ -44,7 +74,7 @@ class _JournalPageState extends State<JournalPage> {
     });
     context
         .read<TransactionBloc>()
-        .add(const TransactionEvent.loadHistory());
+        .add(const TransactionEvent.loadHistoryPaginated());
   }
 
   bool get _hasActiveFilters =>
@@ -54,7 +84,7 @@ class _JournalPageState extends State<JournalPage> {
 
   void _onTransactionCreated() {
     // Reload journal history
-    context.read<TransactionBloc>().add(const TransactionEvent.loadHistory());
+    context.read<TransactionBloc>().add(const TransactionEvent.loadHistoryPaginated());
     // Also refresh dashboard so inventory tab shows updated stock
     context.read<DashboardBloc>().add(const DashboardEvent.refreshDashboard());
   }
@@ -80,6 +110,7 @@ class _JournalPageState extends State<JournalPage> {
                           providers: [
                             BlocProvider.value(value: context.read<TransactionBloc>()),
                             BlocProvider.value(value: context.read<CategoryBloc>()),
+                            BlocProvider.value(value: context.read<CustomerBloc>()),
                           ],
                           child: const CreateTransactionPage(type: 'nhap'),
                         ),
@@ -104,6 +135,7 @@ class _JournalPageState extends State<JournalPage> {
                           providers: [
                             BlocProvider.value(value: context.read<TransactionBloc>()),
                             BlocProvider.value(value: context.read<CategoryBloc>()),
+                            BlocProvider.value(value: context.read<CustomerBloc>()),
                           ],
                           child: const CreateTransactionPage(type: 'xuat'),
                         ),
@@ -306,113 +338,133 @@ class _JournalPageState extends State<JournalPage> {
               return state.map(
                 initial: (_) {
                   context.read<TransactionBloc>().add(
-                        const TransactionEvent.loadHistory(),
+                        const TransactionEvent.loadHistoryPaginated(),
                       );
                   return const AppLoadingIndicator();
                 },
                 loading: (_) => const AppLoadingIndicator(),
-                historyLoaded: (loaded) => RefreshIndicator(
-                  onRefresh: () async {
-                    context.read<TransactionBloc>().add(
-                          const TransactionEvent.loadHistory(),
-                        );
-                  },
-                  child: loaded.transactions.isEmpty
-                      ? LayoutBuilder(
-                          builder: (context, constraints) => SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            child: SizedBox(
-                              height: constraints.maxHeight,
-                              child: const Center(child: Text('Chưa có giao dịch nào')),
-                            ),
-                          ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: loaded.transactions.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final tx = loaded.transactions[index];
-                            final isExport = tx.type == 'xuat';
-                            return Card(
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: isExport
-                                      ? AppColors.exportColor.withValues(alpha: 0.1)
-                                      : AppColors.importColor.withValues(alpha: 0.1),
-                                  child: Icon(
-                                    isExport
-                                        ? Icons.arrow_upward
-                                        : Icons.arrow_downward,
-                                    color: isExport
-                                        ? AppColors.exportColor
-                                        : AppColors.importColor,
-                                  ),
-                                ),
-                                title: Text(tx.customerName),
-                                subtitle: Text(
-                                  DateFormatter.formatDateTime(tx.createdAt),
-                                ),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      CurrencyFormatter.format(tx.totalValue),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: isExport
-                                            ? AppColors.exportColor
-                                            : AppColors.importColor,
-                                      ),
-                                    ),
-                                    if (tx.isDebt)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.debtActive
-                                              .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          'GHI NỢ',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.debtActive,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => TransactionDetailPage(transaction: tx),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
+                historyLoaded: (loaded) => _buildTxList(
+                  loaded.transactions, false, false,
+                ),
+                paginatedHistoryLoaded: (loaded) => _buildTxList(
+                  loaded.transactions, loaded.hasMore, loaded.isLoadingMore,
                 ),
                 created: (_) => const AppLoadingIndicator(),
                 error: (e) => AppErrorWidget(
                   message: e.message,
                   onRetry: () => context
                       .read<TransactionBloc>()
-                      .add(const TransactionEvent.loadHistory()),
+                      .add(const TransactionEvent.loadHistoryPaginated()),
                 ),
               );
             },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTxList(
+    List<dynamic> transactions, bool hasMore, bool isLoadingMore,
+  ) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        context.read<TransactionBloc>().add(TransactionEvent.refreshHistory(
+          startDate: _filterDateRange?.start,
+          endDate: _filterDateRange?.end,
+          type: _filterType,
+          warehouseLocation: _filterWarehouse,
+        ));
+      },
+      child: transactions.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 120),
+                Center(child: Text('Chưa có giao dịch nào')),
+              ],
+            )
+          : ListView.separated(
+              controller: _scrollCtl,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: transactions.length + (hasMore ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                if (index >= transactions.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
+                  );
+                }
+                final tx = transactions[index];
+                final isExport = tx.type == 'xuat';
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isExport
+                          ? AppColors.exportColor.withValues(alpha: 0.1)
+                          : AppColors.importColor.withValues(alpha: 0.1),
+                      child: Icon(
+                        isExport
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        color: isExport
+                            ? AppColors.exportColor
+                            : AppColors.importColor,
+                      ),
+                    ),
+                    title: Text(tx.customerName),
+                    subtitle: Text(
+                      DateFormatter.formatDateTime(tx.createdAt),
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          CurrencyFormatter.format(tx.totalValue),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isExport
+                                ? AppColors.exportColor
+                                : AppColors.importColor,
+                          ),
+                        ),
+                        if (tx.isDebt)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.debtActive
+                                  .withValues(alpha: 0.1),
+                              borderRadius:
+                                  BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'GHI NỢ',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.debtActive,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => TransactionDetailPage(transaction: tx),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
     );
   }
 }
