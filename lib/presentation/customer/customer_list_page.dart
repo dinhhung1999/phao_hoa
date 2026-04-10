@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
@@ -263,6 +264,23 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
+  /// Launch the phone dialer with the given number
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final uri = Uri(scheme: 'tel', path: phoneNumber);
+    try {
+      await launchUrl(uri);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không thể mở ứng dụng gọi điện'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   void _showDebtBottomSheet(BuildContext context, Customer customer) {
     // Load debt records when opening
     context.read<CustomerBloc>().add(CustomerEvent.loadDebts(
@@ -309,18 +327,43 @@ class _CustomerListPageState extends State<CustomerListPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      customer.name,
-                      style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                customer.name,
+                                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              if (customer.phone != null)
+                                Text(
+                                  customer.phone!,
+                                  style: const TextStyle(color: AppColors.textSecondary),
+                                ),
+                            ],
                           ),
+                        ),
+                        if (customer.phone != null && customer.phone!.isNotEmpty)
+                          FilledButton.icon(
+                            onPressed: () => _makePhoneCall(customer.phone!),
+                            icon: const Icon(Icons.phone, size: 18),
+                            label: const Text('Gọi'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    if (customer.phone != null)
-                      Text(
-                        customer.phone!,
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
                     const SizedBox(height: 16),
 
                     // ── Debt summary card with breakdown ──

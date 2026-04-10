@@ -399,6 +399,40 @@ class _JournalPageState extends State<JournalPage> {
       filteredTx = transactions.where((tx) => tx.isDebt).toList();
     }
 
+    if (filteredTx.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () async {
+          context.read<TransactionBloc>().add(TransactionEvent.refreshHistory(
+            startDate: _filterDateRange?.start,
+            endDate: _filterDateRange?.end,
+            type: _filterType,
+            warehouseLocation: _filterWarehouse,
+          ));
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(child: Text('Chưa có giao dịch nào')),
+          ],
+        ),
+      );
+    }
+
+    // Group transactions by date
+    final grouped = _groupByDate(filteredTx);
+    final dateKeys = grouped.keys.toList();
+
+    // Build flat list of items: [header, tx, tx, header, tx, ...] + loading indicator
+    final items = <_ListItem>[];
+    for (final dateKey in dateKeys) {
+      final txsForDate = grouped[dateKey]!;
+      items.add(_ListItem.header(dateKey, txsForDate.length));
+      for (final tx in txsForDate) {
+        items.add(_ListItem.transaction(tx));
+      }
+    }
+
     return RefreshIndicator(
       onRefresh: () async {
         context.read<TransactionBloc>().add(TransactionEvent.refreshHistory(
@@ -408,163 +442,241 @@ class _JournalPageState extends State<JournalPage> {
           warehouseLocation: _filterWarehouse,
         ));
       },
-      child: filteredTx.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 120),
-                Center(child: Text('Chưa có giao dịch nào')),
-              ],
-            )
-          : ListView.separated(
-              controller: _scrollCtl,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filteredTx.length + (hasMore ? 1 : 0),
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                if (index >= filteredTx.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: CircularProgressIndicator.adaptive(),
+      child: ListView.builder(
+        controller: _scrollCtl,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: items.length + (hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= items.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: CircularProgressIndicator.adaptive(),
+              ),
+            );
+          }
+
+          final item = items[index];
+          if (item.isHeader) {
+            return _buildDateHeader(item.dateLabel!, item.count!);
+          }
+
+          final tx = item.tx!;
+          final isExport = tx.type == 'xuat';
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final result = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider.value(
+                        value: context.read<TransactionBloc>(),
+                        child: TransactionDetailPage(transaction: tx),
+                      ),
                     ),
                   );
-                }
-                final tx = filteredTx[index];
-                final isExport = tx.type == 'xuat';
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 2),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () async {
-                      final result = await Navigator.of(context).push<bool>(
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider.value(
-                            value: context.read<TransactionBloc>(),
-                            child: TransactionDetailPage(transaction: tx),
-                          ),
-                        ),
-                      );
-                      if (result == true && context.mounted) {
-                        _onTransactionCreated();
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  if (result == true && context.mounted) {
+                    _onTransactionCreated();
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header: icon + customer + total
+                      Row(
                         children: [
-                          // Header: icon + customer + total
-                          Row(
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: isExport
+                                ? AppColors.exportColor.withValues(alpha: 0.1)
+                                : AppColors.importColor.withValues(alpha: 0.1),
+                            child: Icon(
+                              isExport ? Icons.arrow_upward : Icons.arrow_downward,
+                              size: 16,
+                              color: isExport ? AppColors.exportColor : AppColors.importColor,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tx.customerName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  DateFormatter.formatTime(tx.createdAt),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondaryOf(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              CircleAvatar(
-                                radius: 16,
-                                backgroundColor: isExport
-                                    ? AppColors.exportColor.withValues(alpha: 0.1)
-                                    : AppColors.importColor.withValues(alpha: 0.1),
-                                child: Icon(
-                                  isExport ? Icons.arrow_upward : Icons.arrow_downward,
-                                  size: 16,
+                              Text(
+                                CurrencyFormatter.format(tx.totalValue),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                   color: isExport ? AppColors.exportColor : AppColors.importColor,
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      tx.customerName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Text(
-                                      DateFormatter.formatDateTime(tx.createdAt),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.textSecondaryOf(context),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    CurrencyFormatter.format(tx.totalValue),
+                              if (tx.isDebt)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.debtActive.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'GHI NỢ',
                                     style: TextStyle(
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: isExport ? AppColors.exportColor : AppColors.importColor,
+                                      color: AppColors.debtActive,
                                     ),
                                   ),
-                                  if (tx.isDebt)
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 2),
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.debtActive.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Text(
-                                        'GHI NỢ',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.debtActive,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                                ),
                             ],
                           ),
-                          // Items list
-                          if (tx.itemsSummary.isNotEmpty) ...[
-                            const Divider(height: 16),
-                            ...tx.itemsSummary.map((item) {
-                              final name = item['name'] ?? '';
-                              final qty = item['qty'] ?? 0;
-                              final price = (item['price'] ?? 0).toDouble();
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Row(
-                                  children: [
-                                    const SizedBox(width: 4),
-                                    Icon(Icons.circle, size: 5,
-                                      color: isExport ? AppColors.exportColor : AppColors.importColor),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '$name',
-                                        style: const TextStyle(fontSize: 13),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Text(
-                                      '$qty × ${CurrencyFormatter.format(price)}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.textSecondaryOf(context),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
                         ],
                       ),
-                    ),
+                      // Items list
+                      if (tx.itemsSummary.isNotEmpty) ...[
+                        const Divider(height: 16),
+                        ...tx.itemsSummary.map((item) {
+                          final name = item['name'] ?? '';
+                          final qty = item['qty'] ?? 0;
+                          final price = (item['price'] ?? 0).toDouble();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 4),
+                                Icon(Icons.circle, size: 5,
+                                  color: isExport ? AppColors.exportColor : AppColors.importColor),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$name',
+                                    style: const TextStyle(fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '$qty × ${CurrencyFormatter.format(price)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondaryOf(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
                   ),
-                );
-              },
+                ),
+              ),
             ),
+          );
+        },
+      ),
     );
   }
+
+  /// Group transactions by date (yyyy-MM-dd)
+  Map<String, List<dynamic>> _groupByDate(List<dynamic> transactions) {
+    final Map<String, List<dynamic>> grouped = {};
+    for (final tx in transactions) {
+      final dateKey = DateFormatter.formatDate(tx.createdAt);
+      grouped.putIfAbsent(dateKey, () => []).add(tx);
+    }
+    return grouped;
+  }
+
+  /// Build the date header
+  Widget _buildDateHeader(String dateLabel, int count) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.calendar_today, size: 14, color: AppColors.primary),
+                const SizedBox(width: 6),
+                Text(
+                  dateLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count giao dịch',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondaryOf(context),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Divider(
+              color: AppColors.primary.withValues(alpha: 0.2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Helper class for building grouped list items
+class _ListItem {
+  final bool isHeader;
+  final String? dateLabel;
+  final int? count;
+  final dynamic tx;
+
+  const _ListItem._({
+    required this.isHeader,
+    this.dateLabel,
+    this.count,
+    this.tx,
+  });
+
+  factory _ListItem.header(String dateLabel, int count) =>
+      _ListItem._(isHeader: true, dateLabel: dateLabel, count: count);
+
+  factory _ListItem.transaction(dynamic tx) =>
+      _ListItem._(isHeader: false, tx: tx);
 }
 
 class _FilterChip extends StatelessWidget {
