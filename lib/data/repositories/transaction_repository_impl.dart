@@ -168,6 +168,22 @@ class TransactionRepositoryImpl implements TransactionRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, List<entity.Transaction>>> getTransactionsByProductId(
+    String productId, {
+    int limit = 20,
+  }) async {
+    try {
+      final models = await _datasource.getTransactionsByProductId(
+        productId,
+        limit: limit,
+      );
+      return Right(models.map(_txToEntity).toList());
+    } catch (e) {
+      return Left(FirestoreFailure(_friendlyError(e)));
+    }
+  }
+
   entity.Transaction _txToEntity(TransactionModel m) => entity.Transaction(
     id: m.id,
     type: m.type,

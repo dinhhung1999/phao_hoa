@@ -43,4 +43,9 @@ sealed class TransactionEvent with _$TransactionEvent {
     String? customerId,
     required double previousPaidAmount,
   }) = _UpdateDebtPayment;
+
+  const factory TransactionEvent.loadByProductId({
+    required String productId,
+    @Default(20) int limit,
+  }) = _LoadByProductId;
 }

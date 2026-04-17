@@ -9,6 +9,7 @@ import '../../domain/entities/warehouse_stock.dart';
 import 'dashboard_bloc.dart';
 import 'inventory_detail_sheet.dart';
 import 'reconciliation_page.dart';
+import '../journal/transaction_history_page.dart';
 
 /// Tab 1: Dashboard / Tồn kho — redesigned for clarity & visual impact
 class DashboardPage extends StatefulWidget {
@@ -63,7 +64,7 @@ class _DashboardPageState extends State<DashboardPage>
     if (tabIndex > 0) {
       final key = _locationKeys[tabIndex - 1];
       filtered =
-          filtered.where((s) => s.getStockAt(key) > 0).toList();
+          filtered.where((s) => s.getStockAt(key) != 0).toList();
     }
 
     // Search
@@ -81,7 +82,7 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   int _getOutOfStockCount(List<WarehouseStock> stocks) {
-    return stocks.where((s) => s.totalQuantity == 0).length;
+    return stocks.where((s) => s.totalQuantity <= 0).length;
   }
 
   @override
@@ -237,7 +238,7 @@ class _DashboardPageState extends State<DashboardPage>
               ...List.generate(AppConstants.warehouseLocationNames.length, (i) {
                 final key = _locationKeys[i];
                 final count =
-                    stocks.where((s) => s.getStockAt(key) > 0).length;
+                    stocks.where((s) => s.getStockAt(key) != 0).length;
                 return _buildTab(
                     Icons.warehouse_outlined,
                     AppConstants.warehouseLocationNames[i],
@@ -245,6 +246,62 @@ class _DashboardPageState extends State<DashboardPage>
               }),
             ],
           ),
+
+          // ── Warehouse History Button (visible when specific warehouse tab selected) ──
+          if (_tabController!.index > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: InkWell(
+                onTap: () {
+                  final warehouseName = AppConstants.warehouseLocationNames[_tabController!.index - 1];
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TransactionHistoryPage(
+                        title: 'Lịch sử: $warehouseName',
+                        warehouseLocation: warehouseName,
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.08),
+                        AppColors.primary.withValues(alpha: 0.03),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.history, size: 18, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Xem lịch sử giao dịch kho ${AppConstants.warehouseLocationNames[_tabController!.index - 1]}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: AppColors.primary.withValues(alpha: 0.7),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           // ── Stock List ──
           Expanded(
@@ -424,6 +481,7 @@ class _StockCard extends StatelessWidget {
   });
 
   Color get _statusColor {
+    if (displayQuantity < 0) return AppColors.error;
     if (displayQuantity == 0) return AppColors.error;
     if (displayQuantity < criticalThreshold) return AppColors.error;
     if (displayQuantity < lowThreshold) return AppColors.warning;
@@ -431,6 +489,7 @@ class _StockCard extends StatelessWidget {
   }
 
   String get _statusLabel {
+    if (displayQuantity < 0) return 'Âm kho';
     if (displayQuantity == 0) return 'Hết hàng';
     if (displayQuantity < criticalThreshold) return 'Sắp hết';
     if (displayQuantity < lowThreshold) return 'Thấp';
@@ -438,6 +497,7 @@ class _StockCard extends StatelessWidget {
   }
 
   IconData get _statusIcon {
+    if (displayQuantity < 0) return Icons.trending_down;
     if (displayQuantity == 0) return Icons.error_outline;
     if (displayQuantity < criticalThreshold) return Icons.warning_amber;
     if (displayQuantity < lowThreshold) return Icons.info_outline;
@@ -538,7 +598,7 @@ class _StockCard extends StatelessWidget {
                   final key = locationKeys[i];
                   final qty = stock.getStockAt(key);
                   final total = stock.totalQuantity;
-                  final ratio = total > 0 ? qty / total : 0.0;
+                  final ratio = total > 0 ? (qty.abs() / total).clamp(0.0, 1.0) : 0.0;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: _WarehouseBar(

@@ -109,6 +109,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => GetTransactionHistoryPaginated(sl()));
   sl.registerLazySingleton(() => GetTransactionsByDate(sl()));
   sl.registerLazySingleton(() => UpdateDebtPayment(sl()));
+  sl.registerLazySingleton(() => GetTransactionsByProductId(sl()));
 
   // ── Use Cases: Customer ──
   sl.registerLazySingleton(() => GetAllCustomers(sl()));
@@ -170,6 +171,7 @@ Future<void> initDependencies() async {
     createExport: sl(),
     createImport: sl(),
     updateDebtPayment: sl(),
+    getByProductId: sl(),
   ));
 
   sl.registerFactory(() => CustomerBloc(

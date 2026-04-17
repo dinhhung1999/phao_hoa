@@ -52,4 +52,10 @@ abstract class TransactionRepository {
     String? customerId,
     required double previousPaidAmount,
   });
+
+  /// Get transactions that contain a specific product
+  Future<Either<Failure, List<Transaction>>> getTransactionsByProductId(
+    String productId, {
+    int limit = 20,
+  });
 }

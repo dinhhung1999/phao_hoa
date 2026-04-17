@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/entities/warehouse_stock.dart';
+import '../journal/transaction_history_page.dart';
 
 /// Bottom sheet showing detailed stock breakdown for a specific product.
 class InventoryDetailSheet extends StatelessWidget {
@@ -10,16 +11,33 @@ class InventoryDetailSheet extends StatelessWidget {
   const InventoryDetailSheet({super.key, required this.stock});
 
   static List<String> get _locationKeys => AppConstants.warehouseLocationKeys;
-  static const _locationIcons = [
-    Icons.warehouse,
-    Icons.warehouse_outlined,
-    Icons.store,
-  ];
-  static const _locationColors = [
+
+  /// Dynamic color palette that scales to any number of warehouses
+  static const _colorPalette = [
     Color(0xFF2196F3), // Blue
     Color(0xFF9C27B0), // Purple
     Color(0xFFFF9800), // Orange
+    Color(0xFF4CAF50), // Green
+    Color(0xFFE91E63), // Pink
+    Color(0xFF00BCD4), // Cyan
+    Color(0xFF795548), // Brown
+    Color(0xFF607D8B), // Blue Grey
   ];
+
+  /// Dynamic icon palette that scales to any number of warehouses
+  static const _iconPalette = [
+    Icons.warehouse,
+    Icons.warehouse_outlined,
+    Icons.store,
+    Icons.storefront,
+    Icons.local_shipping,
+    Icons.inventory,
+    Icons.home_work,
+    Icons.business,
+  ];
+
+  Color _colorAt(int i) => _colorPalette[i % _colorPalette.length];
+  IconData _iconAt(int i) => _iconPalette[i % _iconPalette.length];
 
   @override
   Widget build(BuildContext context) {
@@ -110,18 +128,31 @@ class InventoryDetailSheet extends StatelessWidget {
               final key = _locationKeys[i];
               final qty = stock.getStockAt(key);
               final total = stock.totalQuantity;
-              final percentage =
-                  total > 0 ? (qty / total * 100).toStringAsFixed(0) : '0';
-              final ratio = total > 0 ? qty / total : 0.0;
+              final isNegative = qty < 0;
+
+              String percentage;
+              double ratio;
+              if (total > 0) {
+                percentage = (qty / total * 100).toStringAsFixed(0);
+                ratio = (qty.abs() / total).clamp(0.0, 1.0);
+              } else {
+                percentage = '0';
+                ratio = 0.0;
+              }
+
+              final color = _colorAt(i);
+              final barColor = isNegative ? AppColors.error : color;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: _locationColors[i].withValues(alpha: 0.06),
+                  color: color.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _locationColors[i].withValues(alpha: 0.15),
+                    color: isNegative
+                        ? AppColors.error.withValues(alpha: 0.3)
+                        : color.withValues(alpha: 0.15),
                   ),
                 ),
                 child: Column(
@@ -129,9 +160,9 @@ class InventoryDetailSheet extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          _locationIcons[i],
+                          _iconAt(i),
                           size: 20,
-                          color: _locationColors[i],
+                          color: color,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -139,7 +170,7 @@ class InventoryDetailSheet extends StatelessWidget {
                             AppConstants.warehouseLocationNames[i],
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: _locationColors[i],
+                              color: color,
                             ),
                           ),
                         ),
@@ -148,7 +179,7 @@ class InventoryDetailSheet extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: _locationColors[i],
+                            color: isNegative ? AppColors.error : color,
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -156,8 +187,7 @@ class InventoryDetailSheet extends StatelessWidget {
                           '($percentage%)',
                           style: TextStyle(
                             fontSize: 12,
-                            color:
-                                _locationColors[i].withValues(alpha: 0.7),
+                            color: color.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -166,12 +196,11 @@ class InventoryDetailSheet extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: ratio.clamp(0.0, 1.0),
+                        value: ratio,
                         minHeight: 6,
                         backgroundColor:
-                            _locationColors[i].withValues(alpha: 0.12),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            _locationColors[i]),
+                            color.withValues(alpha: 0.12),
+                        valueColor: AlwaysStoppedAnimation<Color>(barColor),
                       ),
                     ),
                   ],
@@ -193,6 +222,36 @@ class InventoryDetailSheet extends StatelessWidget {
             const SizedBox(height: 12),
             _buildQuickOverview(context),
 
+            const SizedBox(height: 20),
+
+            // Transaction history button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close bottom sheet
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TransactionHistoryPage(
+                        title: 'Lịch sử: ${stock.productName}',
+                        productId: stock.productId,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.history, size: 18),
+                label: const Text('Xem lịch sử giao dịch'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+
             const SizedBox(height: 24),
           ],
         );
@@ -206,7 +265,11 @@ class InventoryDetailSheet extends StatelessWidget {
     String label;
     IconData icon;
 
-    if (total == 0) {
+    if (total < 0) {
+      color = AppColors.error;
+      label = 'Âm kho';
+      icon = Icons.trending_down;
+    } else if (total == 0) {
       color = AppColors.error;
       label = 'Hết hàng';
       icon = Icons.error_outline;
@@ -275,20 +338,27 @@ class InventoryDetailSheet extends StatelessWidget {
       );
     }
 
+    // Use Wrap for dynamic number of warehouses to avoid overflow
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceEvenly,
         children: List.generate(_locationKeys.length, (i) {
           final key = _locationKeys[i];
           final qty = stock.getStockAt(key);
+          final isNegative = qty < 0;
           final percentage =
-              total > 0 ? (qty / total * 100).toStringAsFixed(0) : '0';
+              total != 0 ? (qty / total * 100).toStringAsFixed(0) : '0';
+          final color = _colorAt(i);
 
-          return Expanded(
+          return SizedBox(
+            width: 72,
             child: Column(
               children: [
                 Container(
@@ -296,15 +366,17 @@ class InventoryDetailSheet extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _locationColors[i].withValues(alpha: 0.15),
+                    color: isNegative
+                        ? AppColors.error.withValues(alpha: 0.15)
+                        : color.withValues(alpha: 0.15),
                   ),
                   child: Center(
                     child: Text(
                       '$qty',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: qty.abs() > 999 ? 12 : 16,
                         fontWeight: FontWeight.bold,
-                        color: _locationColors[i],
+                        color: isNegative ? AppColors.error : color,
                       ),
                     ),
                   ),
@@ -316,6 +388,7 @@ class InventoryDetailSheet extends StatelessWidget {
                     fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -323,7 +396,7 @@ class InventoryDetailSheet extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: _locationColors[i],
+                    color: isNegative ? AppColors.error : color,
                   ),
                 ),
               ],

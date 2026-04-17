@@ -42,7 +42,11 @@ void main() async {
   }
 
   // Seed default warehouses if collection is empty (backward-compatible migration)
-  await sl<WarehouseRemoteDatasource>().seedDefaultWarehouses();
+  try {
+    await sl<WarehouseRemoteDatasource>().seedDefaultWarehouses();
+  } catch (_) {
+    // Non-critical — warehouses may already exist or user not yet authenticated
+  }
 
   // Load warehouse keys/names into AppConstants for backward-compatible UI usage
   await AppConstants.loadWarehouseNames();

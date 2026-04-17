@@ -15,6 +15,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final CreateExportOrder _createExport;
   final CreateImportOrder _createImport;
   final UpdateDebtPayment _updateDebtPayment;
+  final GetTransactionsByProductId _getByProductId;
 
   static const int _pageSize = 20;
 
@@ -24,11 +25,13 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     required CreateExportOrder createExport,
     required CreateImportOrder createImport,
     required UpdateDebtPayment updateDebtPayment,
+    required GetTransactionsByProductId getByProductId,
   })  : _getHistory = getHistory,
         _getHistoryPaginated = getHistoryPaginated,
         _createExport = createExport,
         _createImport = createImport,
         _updateDebtPayment = updateDebtPayment,
+        _getByProductId = getByProductId,
         super(const TransactionState.initial()) {
     on<TransactionEvent>((event, emit) async {
       await event.map(
@@ -39,6 +42,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         loadMoreHistory: (_) => _onLoadMore(emit),
         refreshHistory: (e) => _onRefresh(e, emit),
         updateDebtPayment: (e) => _onUpdateDebt(e, emit),
+        loadByProductId: (e) => _onLoadByProductId(e, emit),
       );
     });
   }
@@ -184,6 +188,17 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     result.fold(
       (f) => emit(TransactionState.error(f.message)),
       (_) => emit(TransactionState.debtUpdated(event.transactionId)),
+    );
+  }
+
+  Future<void> _onLoadByProductId(
+    _LoadByProductId event, Emitter<TransactionState> emit,
+  ) async {
+    emit(const TransactionState.loading());
+    final result = await _getByProductId(event.productId, limit: event.limit);
+    result.fold(
+      (f) => emit(TransactionState.error(f.message)),
+      (txs) => emit(TransactionState.historyLoaded(txs)),
     );
   }
 }

@@ -117,3 +117,17 @@ class UpdateDebtPayment {
     );
   }
 }
+
+/// Get transactions that contain a specific product
+class GetTransactionsByProductId {
+  final TransactionRepository _repository;
+
+  GetTransactionsByProductId(this._repository);
+
+  Future<Either<Failure, List<Transaction>>> call(
+    String productId, {
+    int limit = 20,
+  }) {
+    return _repository.getTransactionsByProductId(productId, limit: limit);
+  }
+}

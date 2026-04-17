@@ -74,6 +74,8 @@ class TransactionRemoteDatasource {
       'qty': item.quantity,
       'price': item.unitPriceAtTime,
     }).toList();
+    // Store product IDs array for efficient querying without collection group index
+    txData['product_ids'] = items.map((item) => item.productId).toSet().toList();
     batch.set(txDocRef, txData);
 
     // 2. Create item sub-documents with price snapshots
@@ -148,6 +150,8 @@ class TransactionRemoteDatasource {
       'qty': item.quantity,
       'price': item.unitPriceAtTime,
     }).toList();
+    // Store product IDs array for efficient querying without collection group index
+    txData['product_ids'] = items.map((item) => item.productId).toSet().toList();
     batch.set(txDocRef, txData);
 
     // 2. Create items
@@ -319,4 +323,66 @@ class TransactionRemoteDatasource {
 
     await _retryOperation(() => batch.commit());
   }
+
+  /// Get transactions that contain a specific product.
+  /// Uses array-contains on the denormalized 'product_ids' field.
+  /// Falls back to scanning items_summary for older transactions
+  /// that don't have the product_ids field yet.
+  Future<List<TransactionModel>> getTransactionsByProductId(
+    String productId, {
+    int limit = 20,
+  }) async {
+    // Primary query: use array-contains on product_ids
+    // Note: no orderBy to avoid needing a composite index; sort client-side
+    final snapshot = await _txCollection
+        .where('product_ids', arrayContains: productId)
+        .limit(limit * 2)
+        .get();
+
+    final results = snapshot.docs
+        .map((d) => TransactionModel.fromFirestore(d))
+        .toList();
+
+    // Sort client-side by date descending
+    results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    // If we got enough results, return them
+    if (results.length >= limit) {
+      return results;
+    }
+
+    // Fallback: for older transactions that don't have product_ids,
+    // scan recent transactions and check their items subcollections
+    final fallbackSnapshot = await _txCollection
+        .orderBy('created_at', descending: true)
+        .limit(100)
+        .get();
+
+    final existingIds = results.map((r) => r.id).toSet();
+
+    for (final doc in fallbackSnapshot.docs) {
+      if (existingIds.contains(doc.id)) continue;
+
+      final data = doc.data() as Map<String, dynamic>?;
+      // Skip if this doc already has product_ids (already checked above)
+      if (data != null && data.containsKey('product_ids')) continue;
+
+      // Check items subcollection
+      final itemsSnap = await doc.reference
+          .collection(FirestorePaths.transactionItems)
+          .where('product_id', isEqualTo: productId)
+          .limit(1)
+          .get();
+
+      if (itemsSnap.docs.isNotEmpty) {
+        results.add(TransactionModel.fromFirestore(doc));
+        if (results.length >= limit) break;
+      }
+    }
+
+    // Sort by date desc
+    results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return results.take(limit).toList();
+  }
 }
+

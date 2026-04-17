@@ -7,6 +7,7 @@ import '../../core/widgets/confirm_dialog.dart';
 import '../../domain/entities/warehouse.dart';
 import 'warehouse_bloc.dart';
 import 'warehouse_form_page.dart';
+import '../journal/transaction_history_page.dart';
 
 /// Warehouse management list page
 class WarehouseListPage extends StatefulWidget {
@@ -97,6 +98,7 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
           warehouse: warehouses[index],
           onEdit: () => _navigateToForm(context, warehouse: warehouses[index]),
           onDelete: () => _confirmDelete(context, warehouses[index]),
+          onHistory: () => _navigateToHistory(context, warehouses[index]),
         ),
       ),
     );
@@ -131,17 +133,30 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
           .add(WarehouseEvent.deleteWarehouse(warehouse.id));
     }
   }
+
+  void _navigateToHistory(BuildContext context, Warehouse warehouse) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TransactionHistoryPage(
+          title: 'Lịch sử: ${warehouse.name}',
+          warehouseLocation: warehouse.name,
+        ),
+      ),
+    );
+  }
 }
 
 class _WarehouseCard extends StatelessWidget {
   final Warehouse warehouse;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onHistory;
 
   const _WarehouseCard({
     required this.warehouse,
     required this.onEdit,
     required this.onDelete,
+    required this.onHistory,
   });
 
   @override
@@ -189,8 +204,19 @@ class _WarehouseCard extends StatelessWidget {
                     onSelected: (v) {
                       if (v == 'edit') onEdit();
                       if (v == 'delete') onDelete();
+                      if (v == 'history') onHistory();
                     },
                     itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'history',
+                        child: Row(
+                          children: [
+                            Icon(Icons.history, size: 18),
+                            SizedBox(width: 8),
+                            Text('Xem lịch sử'),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'edit',
                         child: Row(
