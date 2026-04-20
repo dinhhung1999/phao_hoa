@@ -8,6 +8,9 @@ import '../../domain/entities/product.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/transaction.dart' as entity;
 import '../../domain/entities/transaction_item.dart';
+import '../../domain/entities/warehouse_stock.dart';
+import '../../domain/usecases/inventory/inventory_usecases.dart';
+import '../../injection_container.dart';
 import '../auth/auth_bloc.dart';
 import '../category/category_bloc.dart';
 import '../customer/customer_bloc.dart';
@@ -44,6 +47,10 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
 
   final List<_ItemEntry> _items = [];
 
+  // Available stock data for export orders
+  Map<String, WarehouseStock> _stockMap = {};
+  bool _stocksLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +59,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     // Load customers for export orders
     if (widget.isExport) {
       context.read<CustomerBloc>().add(const CustomerEvent.loadCustomers());
+      _loadStocks();
     }
   }
 
@@ -65,6 +73,30 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
       item.dispose();
     }
     super.dispose();
+  }
+
+  /// Load inventory stocks to display available quantities for export
+  Future<void> _loadStocks() async {
+    final result = await sl<GetDashboardSummary>().call();
+    result.fold(
+      (_) {},
+      (stocks) {
+        if (mounted) {
+          setState(() {
+            _stockMap = {for (final s in stocks) s.productId: s};
+            _stocksLoaded = true;
+          });
+        }
+      },
+    );
+  }
+
+  /// Get available stock for a product at the currently selected warehouse
+  int _getAvailableStock(String productId) {
+    final stock = _stockMap[productId];
+    if (stock == null) return 0;
+    final locationKey = AppConstants.getLocationKey(_warehouseLocation);
+    return stock.getStockAt(locationKey);
   }
 
   double get _totalValue {
@@ -132,13 +164,97 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng thêm ít nhất một sản phẩm')),
       );
       return;
+    }
+
+    // Check for negative stock on export
+    if (widget.isExport && _stocksLoaded) {
+      final negativeItems = <Map<String, dynamic>>[];
+      for (final item in _items) {
+        final qty = _resolveQuantity(item.quantityCtl.text);
+        final available = _getAvailableStock(item.product.id);
+        if (qty > available) {
+          negativeItems.add({
+            'name': item.product.name,
+            'available': available,
+            'qty': qty,
+            'deficit': available - qty,
+          });
+        }
+      }
+      if (negativeItems.isNotEmpty) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24),
+                SizedBox(width: 8),
+                Text('Cảnh báo âm kho', style: TextStyle(fontSize: 17)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Các sản phẩm sau sẽ bị âm kho nếu tiếp tục:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  ...negativeItems.map((e) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(e['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tồn: ${e['available']} → Xuất: ${e['qty']} → Âm: ${e['deficit']}',
+                          style: const TextStyle(fontSize: 13, color: AppColors.error),
+                        ),
+                      ],
+                    ),
+                  )),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Bạn có chắc chắn muốn tiếp tục xuất kho?',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Huỷ'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Xác nhận xuất'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true) return;
+      }
     }
 
     final now = DateTime.now();
@@ -157,6 +273,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
 
     // Get current user email for createdBy
     String userEmail = '';
+    if (!mounted) return;
     final authState = context.read<AuthBloc>().state;
     authState.mapOrNull(
       authenticated: (auth) => userEmail = auth.user.email,
@@ -209,6 +326,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
       items: items,
     );
 
+    if (!mounted) return;
     final bloc = context.read<TransactionBloc>();
     if (widget.isExport) {
       bloc.add(TransactionEvent.createExport(
@@ -407,7 +525,53 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            // Available stock indicator (export only)
+                            if (widget.isExport && _stocksLoaded)
+                              Builder(builder: (context) {
+                                final available = _getAvailableStock(item.product.id);
+                                final currentQty = _resolveQuantity(item.quantityCtl.text);
+                                final willBeNegative = currentQty > available;
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 4, bottom: 4),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        willBeNegative ? Icons.warning_amber : Icons.inventory_2_outlined,
+                                        size: 14,
+                                        color: willBeNegative ? AppColors.error : AppColors.textSecondaryOf(context),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Tồn kho: $available',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: willBeNegative ? AppColors.error : AppColors.textSecondaryOf(context),
+                                        ),
+                                      ),
+                                      if (willBeNegative) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.error.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            'Âm ${available - currentQty}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.error,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              }),
+                            const SizedBox(height: 4),
                             // Row 2: Price + Quantity + Subtotal
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -472,7 +636,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       width: 80,
                                       child: TextFormField(
                                         controller: item.quantityCtl,
-                                        keyboardType: TextInputType.text,
+                                        keyboardType: TextInputType.number,
                                         textAlign: TextAlign.center,
                                         decoration: InputDecoration(
                                           isDense: true,
@@ -913,7 +1077,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                   return ListTile(
                                     title: Text(product.name),
                                     subtitle: Text(
-                                      CurrencyFormatter.format(price),
+                                      '${CurrencyFormatter.format(price)}'
+                                      '${widget.isExport && _stocksLoaded ? ' • Tồn: ${_getAvailableStock(product.id)}' : ''}',
                                     ),
                                     trailing: alreadyAdded
                                         ? const Icon(Icons.check,
@@ -971,7 +1136,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                   return ListTile(
                                     title: Text(product.name),
                                     subtitle: Text(
-                                      CurrencyFormatter.format(price),
+                                      '${CurrencyFormatter.format(price)}'
+                                      '${widget.isExport && _stocksLoaded ? ' • Tồn: ${_getAvailableStock(product.id)}' : ''}',
                                     ),
                                     trailing: alreadyAdded
                                         ? const Icon(Icons.check,

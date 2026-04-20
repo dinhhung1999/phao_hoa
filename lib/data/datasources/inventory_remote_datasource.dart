@@ -103,6 +103,17 @@ class InventoryRemoteDatasource {
         .toList();
   }
 
+  /// Get items for a specific reconciliation
+  Future<List<Map<String, dynamic>>> getReconciliationItems(
+    String reconciliationId,
+  ) async {
+    final snapshot = await _reconCollection
+        .doc(reconciliationId)
+        .collection(FirestorePaths.reconciliationItems)
+        .get();
+    return snapshot.docs.map((d) => d.data()).toList();
+  }
+
   /// Calculate total inventory value
   Future<double> getTotalInventoryValue() async {
     final stocks = await getAllStocks();

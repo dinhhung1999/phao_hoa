@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/error_widget.dart';
+import '../../core/utils/date_formatter.dart';
 import '../../domain/entities/warehouse_stock.dart';
+import '../../domain/entities/inventory_snapshot.dart';
+import '../../domain/usecases/inventory/inventory_usecases.dart';
+import '../../injection_container.dart';
 import '../dashboard/dashboard_bloc.dart';
+import 'reconciliation_history_page.dart';
 
 /// Reconciliation page — physically count inventory and compare with system
 class ReconciliationPage extends StatefulWidget {
@@ -20,6 +26,30 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
       {};
   bool _submitted = false;
   String _selectedWarehouse = 'all';
+  bool _isCompleting = false;
+  InventorySnapshot? _lastReconciliation;
+  bool _historyLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastReconciliation();
+  }
+
+  Future<void> _loadLastReconciliation() async {
+    final result = await sl<GetReconciliationHistory>().call();
+    result.fold(
+      (_) {},
+      (history) {
+        if (mounted) {
+          setState(() {
+            _lastReconciliation = history.isNotEmpty ? history.first : null;
+            _historyLoaded = true;
+          });
+        }
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -36,6 +66,19 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Đối soát tồn kho'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ReconciliationHistoryPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history),
+            tooltip: 'Lịch sử đối soát',
+          ),
+        ],
       ),
       body: BlocBuilder<DashboardBloc, DashboardState>(
         builder: (context, state) {
@@ -185,6 +228,77 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
           ),
         ),
 
+        // Last reconciliation info — always visible at top for reference
+        if (_historyLoaded && _lastReconciliation != null)
+          InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ReconciliationHistoryPage(),
+                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.history, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Đối soát gần nhất',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${DateFormatter.formatDateTime(_lastReconciliation!.date)} • '
+                          '${_lastReconciliation!.hasDiscrepancy ? "Có chênh lệch" : "Khớp tất cả"}'
+                          '${_lastReconciliation!.notes != null ? " • ${_lastReconciliation!.notes}" : ""}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _lastReconciliation!.hasDiscrepancy
+                                ? AppColors.error
+                                : AppColors.textSecondaryOf(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _lastReconciliation!.hasDiscrepancy
+                        ? Icons.warning_amber
+                        : Icons.check_circle,
+                    size: 18,
+                    color: _lastReconciliation!.hasDiscrepancy
+                        ? AppColors.error
+                        : AppColors.success,
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: AppColors.textHintOf(context),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
         // ── Progress / Summary ──
         if (_submitted)
           _buildSummaryPanel(
@@ -254,7 +368,7 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                 if (_submitted) ...[
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => setState(() => _submitted = false),
+                      onPressed: _isCompleting ? null : () => setState(() => _submitted = false),
                       icon: const Icon(Icons.refresh, size: 18),
                       label: const Text('Nhập lại'),
                       style: OutlinedButton.styleFrom(
@@ -270,13 +384,23 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
                 Expanded(
                   flex: _submitted ? 2 : 1,
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() => _submitted = true);
-                    },
-                    icon: Icon(
-                        _submitted ? Icons.check : Icons.fact_check,
-                        size: 20),
-                    label: Text(_submitted ? 'Hoàn thành đối soát' : 'So sánh'),
+                    onPressed: _isCompleting
+                        ? null
+                        : _submitted
+                            ? () => _completeReconciliation(stocks, locationKeysToShow)
+                            : () => setState(() => _submitted = true),
+                    icon: _isCompleting
+                        ? const SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                          )
+                        : Icon(
+                            _submitted ? Icons.check : Icons.fact_check,
+                            size: 20),
+                    label: Text(_isCompleting
+                        ? 'Đang lưu...'
+                        : _submitted ? 'Hoàn thành đối soát' : 'So sánh'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           _submitted ? AppColors.success : AppColors.primary,
@@ -657,6 +781,261 @@ class _ReconciliationPageState extends State<ReconciliationPage> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Perform actual reconciliation — save to Firestore and show report
+  Future<void> _completeReconciliation(
+    List<WarehouseStock> stocks,
+    List<String> locationKeysToShow,
+  ) async {
+    // Build reconciliation items
+    final items = <ReconciliationItem>[];
+    bool hasDiscrepancy = false;
+
+    for (final stock in stocks) {
+      for (final locationKey in locationKeysToShow) {
+        final systemQty = stock.getStockAt(locationKey);
+        final ctl = _actualQuantityCtls[stock.productId]?[locationKey];
+        final actualQty = int.tryParse(ctl?.text ?? '') ?? 0;
+        final diff = actualQty - systemQty;
+
+        items.add(ReconciliationItem(
+          productId: stock.productId,
+          productName: stock.productName,
+          warehouseLocation: locationKey,
+          systemQuantity: systemQty,
+          actualQuantity: actualQty,
+          difference: diff,
+          isMatched: diff == 0,
+        ));
+
+        if (diff != 0) hasDiscrepancy = true;
+      }
+    }
+
+    // Ask if user wants to adjust inventory when there are discrepancies
+    bool shouldAdjust = false;
+    if (hasDiscrepancy) {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 24),
+              SizedBox(width: 8),
+              Expanded(child: Text('Có chênh lệch tồn kho', style: TextStyle(fontSize: 16))),
+            ],
+          ),
+          content: const Text(
+            'Bạn có muốn điều chỉnh tồn kho hệ thống theo số lượng thực tế không?\n\n'
+            '• Chọn "Điều chỉnh" để cập nhật tồn kho theo thực tế\n'
+            '• Chọn "Chỉ lưu" để ghi nhận chênh lệch mà không thay đổi',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Chỉ lưu'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Điều chỉnh'),
+            ),
+          ],
+        ),
+      );
+      if (result == null) return; // Cancelled
+      shouldAdjust = result;
+    }
+
+    // Perform reconciliation
+    setState(() => _isCompleting = true);
+
+    final userId = FirebaseAuth.instance.currentUser?.email ?? 'unknown';
+    final warehouseLocation = _selectedWarehouse == 'all'
+        ? 'all'
+        : AppConstants.getLocationKey(_selectedWarehouse);
+
+    final reconResult = await sl<PerformStockReconciliation>().call(
+      userId: userId,
+      warehouseLocation: warehouseLocation,
+      items: items,
+      shouldAdjust: shouldAdjust,
+    );
+
+    setState(() => _isCompleting = false);
+
+    reconResult.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: ${failure.message}'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      },
+      (reconId) {
+        _showReconciliationReport(items, hasDiscrepancy, shouldAdjust);
+      },
+    );
+  }
+
+  /// Show reconciliation report dialog
+  void _showReconciliationReport(
+    List<ReconciliationItem> items,
+    bool hasDiscrepancy,
+    bool adjusted,
+  ) {
+    final matched = items.where((i) => i.isMatched).length;
+    final discrepancies = items.where((i) => !i.isMatched).toList();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              hasDiscrepancy ? Icons.assignment_turned_in : Icons.check_circle,
+              color: hasDiscrepancy ? AppColors.warning : AppColors.success,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Báo cáo đối soát', style: TextStyle(fontSize: 17)),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Summary stats
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    _reportRow('Tổng vị trí kiểm tra', '${items.length}'),
+                    const SizedBox(height: 6),
+                    _reportRow('Khớp', '$matched', color: AppColors.success),
+                    const SizedBox(height: 6),
+                    _reportRow('Chênh lệch', '${discrepancies.length}',
+                        color: discrepancies.isNotEmpty ? AppColors.error : AppColors.success),
+                  ],
+                ),
+              ),
+              if (hasDiscrepancy) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: adjusted
+                        ? AppColors.success.withValues(alpha: 0.08)
+                        : AppColors.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: adjusted
+                          ? AppColors.success.withValues(alpha: 0.2)
+                          : AppColors.warning.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        adjusted ? Icons.check_circle : Icons.info_outline,
+                        size: 18,
+                        color: adjusted ? AppColors.success : AppColors.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          adjusted
+                              ? 'Đã điều chỉnh tồn kho theo thực tế'
+                              : 'Chưa điều chỉnh tồn kho',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: adjusted ? AppColors.success : AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Chi tiết chênh lệch:',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                ...discrepancies.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${item.productName} (${AppConstants.getDisplayName(item.warehouseLocation)})',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      Text(
+                        '${item.difference > 0 ? '+' : ''}${item.difference}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: item.difference > 0 ? AppColors.success : AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx); // close dialog
+              Navigator.pop(context); // go back to dashboard
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportRow(String label, String value, {Color? color}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }
