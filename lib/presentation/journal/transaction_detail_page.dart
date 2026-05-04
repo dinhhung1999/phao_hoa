@@ -4,6 +4,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../domain/entities/transaction.dart' as entity;
+import '../../domain/repositories/transaction_repository.dart';
+import '../../injection_container.dart';
+import 'create_transaction_page.dart';
 import 'transaction_bloc.dart';
 
 /// Transaction detail page — shows full info of a single import/export transaction
@@ -25,6 +28,57 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   void initState() {
     super.initState();
     _tx = widget.transaction;
+  }
+
+  /// Check if the transaction was created within the last 24 hours
+  bool get _canEdit {
+    final elapsed = DateTime.now().difference(_tx.createdAt);
+    return elapsed.inHours < 24;
+  }
+
+  String get _editTimeRemaining {
+    final deadline = _tx.createdAt.add(const Duration(hours: 24));
+    final remaining = deadline.difference(DateTime.now());
+    if (remaining.isNegative) return 'Hết hạn sửa';
+    final h = remaining.inHours;
+    final m = remaining.inMinutes % 60;
+    return 'Còn ${h}h${m.toString().padLeft(2, '0')}p để sửa';
+  }
+
+  /// Navigate to edit mode — fetch items then open CreateTransactionPage
+  Future<void> _navigateToEdit() async {
+    // Fetch full transaction with items from Firestore
+    final repo = sl<TransactionRepository>();
+    final result = await repo.getTransactionWithItems(_tx.id);
+
+    if (!mounted) return;
+
+    result.fold(
+      (failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${failure.message}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      },
+      (fullTransaction) async {
+        final edited = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider.value(
+              value: context.read<TransactionBloc>(),
+              child: CreateTransactionPage(
+                type: _tx.type,
+                editTransaction: fullTransaction,
+              ),
+            ),
+          ),
+        );
+        if (edited == true && mounted) {
+          Navigator.of(context).pop(true); // Signal list to refresh
+        }
+      },
+    );
   }
 
   void _showUpdateDebtDialog() {
@@ -182,6 +236,15 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             );
             Navigator.of(context).pop(true); // Signal list to refresh
           },
+          updated: (_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã cập nhật phiếu thành công'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+            Navigator.of(context).pop(true); // Signal list to refresh
+          },
           error: (e) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -195,6 +258,14 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(_isExport ? 'Phiếu xuất kho' : 'Phiếu nhập kho'),
+          actions: [
+            if (_canEdit)
+              TextButton.icon(
+                onPressed: _navigateToEdit,
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Sửa'),
+              ),
+          ],
         ),
         body: ListView(
           padding: const EdgeInsets.all(20),
@@ -256,6 +327,34 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Edit time badge
+            if (_canEdit)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.info.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_outlined, size: 16, color: AppColors.info),
+                    const SizedBox(width: 8),
+                    Text(
+                      _editTimeRemaining,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.info,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Debt management section
             if (_tx.isDebt) ...[

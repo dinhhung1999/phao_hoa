@@ -10,6 +10,7 @@ import 'data/datasources/customer_remote_datasource.dart';
 import 'data/datasources/inventory_remote_datasource.dart';
 import 'data/datasources/checklist_remote_datasource.dart';
 import 'data/datasources/warehouse_remote_datasource.dart';
+import 'data/datasources/formula_remote_datasource.dart';
 
 // Repository implementations
 import 'data/repositories/auth_repository_impl.dart';
@@ -19,6 +20,7 @@ import 'data/repositories/customer_repository_impl.dart';
 import 'data/repositories/inventory_repository_impl.dart';
 import 'data/repositories/checklist_repository_impl.dart';
 import 'data/repositories/warehouse_repository_impl.dart';
+import 'data/repositories/formula_repository_impl.dart';
 
 // Domain repositories (contracts)
 import 'domain/repositories/auth_repository.dart';
@@ -28,6 +30,7 @@ import 'domain/repositories/customer_repository.dart';
 import 'domain/repositories/inventory_repository.dart';
 import 'domain/repositories/checklist_repository.dart';
 import 'domain/repositories/warehouse_repository.dart';
+import 'domain/repositories/formula_repository.dart';
 
 // Use cases
 import 'domain/usecases/auth/auth_usecases.dart';
@@ -37,6 +40,7 @@ import 'domain/usecases/customer/customer_usecases.dart';
 import 'domain/usecases/inventory/inventory_usecases.dart';
 import 'domain/usecases/checklist/checklist_usecases.dart';
 import 'domain/usecases/warehouse/warehouse_usecases.dart';
+import 'domain/usecases/formula/formula_usecases.dart';
 
 // BLoCs (feature-based paths)
 import 'presentation/auth/auth_bloc.dart';
@@ -46,6 +50,7 @@ import 'presentation/journal/transaction_bloc.dart';
 import 'presentation/customer/customer_bloc.dart';
 import 'presentation/checklist/checklist_bloc.dart';
 import 'presentation/warehouse/warehouse_bloc.dart';
+import 'presentation/formula/formula_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -62,6 +67,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => InventoryRemoteDatasource(sl()));
   sl.registerLazySingleton(() => ChecklistRemoteDatasource(sl()));
   sl.registerLazySingleton(() => WarehouseRemoteDatasource(sl()));
+  sl.registerLazySingleton(() => FormulaRemoteDatasource(sl()));
 
   // ── Repositories ──
   sl.registerLazySingleton<AuthRepository>(
@@ -84,6 +90,9 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<WarehouseRepository>(
     () => WarehouseRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<FormulaRepository>(
+    () => FormulaRepositoryImpl(sl()),
   );
 
   // ── Use Cases: Auth ──
@@ -110,6 +119,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => GetTransactionsByDate(sl()));
   sl.registerLazySingleton(() => UpdateDebtPayment(sl()));
   sl.registerLazySingleton(() => GetTransactionsByProductId(sl()));
+  sl.registerLazySingleton(() => UpdateTransaction(sl()));
 
   // ── Use Cases: Customer ──
   sl.registerLazySingleton(() => GetAllCustomers(sl()));
@@ -123,6 +133,7 @@ Future<void> initDependencies() async {
 
   // ── Use Cases: Inventory ──
   sl.registerLazySingleton(() => GetDashboardSummary(sl()));
+  sl.registerLazySingleton(() => WatchDashboardStocks(sl()));
   sl.registerLazySingleton(() => GetStockByLocation(sl()));
   sl.registerLazySingleton(() => PerformStockReconciliation(sl()));
   sl.registerLazySingleton(() => GetReconciliationHistory(sl()));
@@ -141,6 +152,13 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => WatchAllWarehouses(sl()));
   sl.registerLazySingleton(() => GetChecklistHistory(sl()));
 
+  // ── Use Cases: Formula ──
+  sl.registerLazySingleton(() => GetAllFormulas(sl()));
+  sl.registerLazySingleton(() => WatchAllFormulas(sl()));
+  sl.registerLazySingleton(() => GetFormulaByProductId(sl()));
+  sl.registerLazySingleton(() => SaveFormula(sl()));
+  sl.registerLazySingleton(() => DeleteFormula(sl()));
+
   // ── BLoCs ──
   sl.registerFactory(() => AuthBloc(
     signInWithEmail: sl(),
@@ -152,6 +170,7 @@ Future<void> initDependencies() async {
   sl.registerFactory(() => DashboardBloc(
     getDashboardSummary: sl(),
     getTotalInventoryValue: sl(),
+    watchDashboardStocks: sl(),
   ));
 
   sl.registerFactory(() => CategoryBloc(
@@ -172,6 +191,7 @@ Future<void> initDependencies() async {
     createImport: sl(),
     updateDebtPayment: sl(),
     getByProductId: sl(),
+    updateTransaction: sl(),
   ));
 
   sl.registerFactory(() => CustomerBloc(
@@ -195,5 +215,11 @@ Future<void> initDependencies() async {
     addWarehouse: sl(),
     updateWarehouse: sl(),
     deleteWarehouse: sl(),
+  ));
+
+  sl.registerFactory(() => FormulaBloc(
+    getAllFormulas: sl(),
+    saveFormula: sl(),
+    deleteFormula: sl(),
   ));
 }

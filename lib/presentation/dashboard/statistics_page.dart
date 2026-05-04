@@ -85,6 +85,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     return const Center(
                         child: CircularProgressIndicator.adaptive());
                   },
+                  updated: (_) {
+                    _loadData();
+                    return const Center(
+                        child: CircularProgressIndicator.adaptive());
+                  },
                   error: (e) => Center(child: Text(e.message)),
                 );
               },

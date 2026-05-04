@@ -16,6 +16,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final CreateImportOrder _createImport;
   final UpdateDebtPayment _updateDebtPayment;
   final GetTransactionsByProductId _getByProductId;
+  final UpdateTransaction _updateTransaction;
 
   static const int _pageSize = 20;
 
@@ -26,12 +27,14 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     required CreateImportOrder createImport,
     required UpdateDebtPayment updateDebtPayment,
     required GetTransactionsByProductId getByProductId,
+    required UpdateTransaction updateTransaction,
   })  : _getHistory = getHistory,
         _getHistoryPaginated = getHistoryPaginated,
         _createExport = createExport,
         _createImport = createImport,
         _updateDebtPayment = updateDebtPayment,
         _getByProductId = getByProductId,
+        _updateTransaction = updateTransaction,
         super(const TransactionState.initial()) {
     on<TransactionEvent>((event, emit) async {
       await event.map(
@@ -43,6 +46,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         refreshHistory: (e) => _onRefresh(e, emit),
         updateDebtPayment: (e) => _onUpdateDebt(e, emit),
         loadByProductId: (e) => _onLoadByProductId(e, emit),
+        editTransaction: (e) => _onEditTransaction(e, emit),
       );
     });
   }
@@ -199,6 +203,22 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     result.fold(
       (f) => emit(TransactionState.error(f.message)),
       (txs) => emit(TransactionState.historyLoaded(txs)),
+    );
+  }
+
+  Future<void> _onEditTransaction(
+    _EditTransaction event, Emitter<TransactionState> emit,
+  ) async {
+    emit(const TransactionState.loading());
+    final result = await _updateTransaction(
+      oldTransaction: event.oldTransaction,
+      oldItems: event.oldItems,
+      newTransaction: event.newTransaction,
+      newItems: event.newItems,
+    );
+    result.fold(
+      (f) => emit(TransactionState.error(f.message)),
+      (_) => emit(TransactionState.updated(event.oldTransaction.id)),
     );
   }
 }

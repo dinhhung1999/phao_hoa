@@ -14,6 +14,15 @@ class GetDashboardSummary {
       _repository.getAllStocks();
 }
 
+/// Watch dashboard stocks in realtime
+class WatchDashboardStocks {
+  final InventoryRepository _repository;
+
+  WatchDashboardStocks(this._repository);
+
+  Stream<List<WarehouseStock>> call() => _repository.watchAllStocks();
+}
+
 /// Get stock by location
 class GetStockByLocation {
   final InventoryRepository _repository;
@@ -66,3 +75,4 @@ class GetTotalInventoryValue {
   Future<Either<Failure, double>> call() =>
       _repository.getTotalInventoryValue();
 }
+

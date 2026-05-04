@@ -78,6 +78,7 @@ class _TransactionHistoryView extends StatelessWidget {
                 _buildList(context, loaded.transactions),
             created: (_) => const SizedBox.shrink(),
             debtUpdated: (_) => const SizedBox.shrink(),
+            updated: (_) => const SizedBox.shrink(),
             error: (e) => AppErrorWidget(
               message: e.message,
               onRetry: () => _reload(context),

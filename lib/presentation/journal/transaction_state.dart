@@ -10,6 +10,7 @@ sealed class TransactionState with _$TransactionState {
   const factory TransactionState.created(String transactionId) = _Created;
   const factory TransactionState.error(String message) = _Error;
   const factory TransactionState.debtUpdated(String transactionId) = _DebtUpdated;
+  const factory TransactionState.updated(String transactionId) = _Updated;
 
   // Paginated state
   const factory TransactionState.paginatedHistoryLoaded({

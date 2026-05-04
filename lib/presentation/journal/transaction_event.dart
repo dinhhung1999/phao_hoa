@@ -48,4 +48,11 @@ sealed class TransactionEvent with _$TransactionEvent {
     required String productId,
     @Default(20) int limit,
   }) = _LoadByProductId;
+
+  const factory TransactionEvent.editTransaction({
+    required entity.Transaction oldTransaction,
+    required List<TransactionItem> oldItems,
+    required entity.Transaction newTransaction,
+    required List<TransactionItem> newItems,
+  }) = _EditTransaction;
 }

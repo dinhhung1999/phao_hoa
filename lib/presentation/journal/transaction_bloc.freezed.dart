@@ -55,7 +55,7 @@ extension TransactionEventPatterns on TransactionEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadHistory value)?  loadHistory,TResult Function( _CreateExport value)?  createExport,TResult Function( _CreateImport value)?  createImport,TResult Function( _LoadHistoryPaginated value)?  loadHistoryPaginated,TResult Function( _LoadMoreHistory value)?  loadMoreHistory,TResult Function( _RefreshHistory value)?  refreshHistory,TResult Function( _UpdateDebtPayment value)?  updateDebtPayment,TResult Function( _LoadByProductId value)?  loadByProductId,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadHistory value)?  loadHistory,TResult Function( _CreateExport value)?  createExport,TResult Function( _CreateImport value)?  createImport,TResult Function( _LoadHistoryPaginated value)?  loadHistoryPaginated,TResult Function( _LoadMoreHistory value)?  loadMoreHistory,TResult Function( _RefreshHistory value)?  refreshHistory,TResult Function( _UpdateDebtPayment value)?  updateDebtPayment,TResult Function( _LoadByProductId value)?  loadByProductId,TResult Function( _EditTransaction value)?  editTransaction,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
@@ -66,7 +66,8 @@ return loadHistoryPaginated(_that);case _LoadMoreHistory() when loadMoreHistory 
 return loadMoreHistory(_that);case _RefreshHistory() when refreshHistory != null:
 return refreshHistory(_that);case _UpdateDebtPayment() when updateDebtPayment != null:
 return updateDebtPayment(_that);case _LoadByProductId() when loadByProductId != null:
-return loadByProductId(_that);case _:
+return loadByProductId(_that);case _EditTransaction() when editTransaction != null:
+return editTransaction(_that);case _:
   return orElse();
 
 }
@@ -84,7 +85,7 @@ return loadByProductId(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadHistory value)  loadHistory,required TResult Function( _CreateExport value)  createExport,required TResult Function( _CreateImport value)  createImport,required TResult Function( _LoadHistoryPaginated value)  loadHistoryPaginated,required TResult Function( _LoadMoreHistory value)  loadMoreHistory,required TResult Function( _RefreshHistory value)  refreshHistory,required TResult Function( _UpdateDebtPayment value)  updateDebtPayment,required TResult Function( _LoadByProductId value)  loadByProductId,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadHistory value)  loadHistory,required TResult Function( _CreateExport value)  createExport,required TResult Function( _CreateImport value)  createImport,required TResult Function( _LoadHistoryPaginated value)  loadHistoryPaginated,required TResult Function( _LoadMoreHistory value)  loadMoreHistory,required TResult Function( _RefreshHistory value)  refreshHistory,required TResult Function( _UpdateDebtPayment value)  updateDebtPayment,required TResult Function( _LoadByProductId value)  loadByProductId,required TResult Function( _EditTransaction value)  editTransaction,}){
 final _that = this;
 switch (_that) {
 case _LoadHistory():
@@ -95,7 +96,8 @@ return loadHistoryPaginated(_that);case _LoadMoreHistory():
 return loadMoreHistory(_that);case _RefreshHistory():
 return refreshHistory(_that);case _UpdateDebtPayment():
 return updateDebtPayment(_that);case _LoadByProductId():
-return loadByProductId(_that);}
+return loadByProductId(_that);case _EditTransaction():
+return editTransaction(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -109,7 +111,7 @@ return loadByProductId(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadHistory value)?  loadHistory,TResult? Function( _CreateExport value)?  createExport,TResult? Function( _CreateImport value)?  createImport,TResult? Function( _LoadHistoryPaginated value)?  loadHistoryPaginated,TResult? Function( _LoadMoreHistory value)?  loadMoreHistory,TResult? Function( _RefreshHistory value)?  refreshHistory,TResult? Function( _UpdateDebtPayment value)?  updateDebtPayment,TResult? Function( _LoadByProductId value)?  loadByProductId,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadHistory value)?  loadHistory,TResult? Function( _CreateExport value)?  createExport,TResult? Function( _CreateImport value)?  createImport,TResult? Function( _LoadHistoryPaginated value)?  loadHistoryPaginated,TResult? Function( _LoadMoreHistory value)?  loadMoreHistory,TResult? Function( _RefreshHistory value)?  refreshHistory,TResult? Function( _UpdateDebtPayment value)?  updateDebtPayment,TResult? Function( _LoadByProductId value)?  loadByProductId,TResult? Function( _EditTransaction value)?  editTransaction,}){
 final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
@@ -120,7 +122,8 @@ return loadHistoryPaginated(_that);case _LoadMoreHistory() when loadMoreHistory 
 return loadMoreHistory(_that);case _RefreshHistory() when refreshHistory != null:
 return refreshHistory(_that);case _UpdateDebtPayment() when updateDebtPayment != null:
 return updateDebtPayment(_that);case _LoadByProductId() when loadByProductId != null:
-return loadByProductId(_that);case _:
+return loadByProductId(_that);case _EditTransaction() when editTransaction != null:
+return editTransaction(_that);case _:
   return null;
 
 }
@@ -137,7 +140,7 @@ return loadByProductId(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistoryPaginated,TResult Function()?  loadMoreHistory,TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  refreshHistory,TResult Function( String transactionId,  double newPaidAmount,  double totalValue,  String? customerId,  double previousPaidAmount)?  updateDebtPayment,TResult Function( String productId,  int limit)?  loadByProductId,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistoryPaginated,TResult Function()?  loadMoreHistory,TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  refreshHistory,TResult Function( String transactionId,  double newPaidAmount,  double totalValue,  String? customerId,  double previousPaidAmount)?  updateDebtPayment,TResult Function( String productId,  int limit)?  loadByProductId,TResult Function( entity.Transaction oldTransaction,  List<TransactionItem> oldItems,  entity.Transaction newTransaction,  List<TransactionItem> newItems)?  editTransaction,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
 return loadHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _CreateExport() when createExport != null:
@@ -147,7 +150,8 @@ return loadHistoryPaginated(_that.startDate,_that.endDate,_that.type,_that.wareh
 return loadMoreHistory();case _RefreshHistory() when refreshHistory != null:
 return refreshHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _UpdateDebtPayment() when updateDebtPayment != null:
 return updateDebtPayment(_that.transactionId,_that.newPaidAmount,_that.totalValue,_that.customerId,_that.previousPaidAmount);case _LoadByProductId() when loadByProductId != null:
-return loadByProductId(_that.productId,_that.limit);case _:
+return loadByProductId(_that.productId,_that.limit);case _EditTransaction() when editTransaction != null:
+return editTransaction(_that.oldTransaction,_that.oldItems,_that.newTransaction,_that.newItems);case _:
   return orElse();
 
 }
@@ -165,7 +169,7 @@ return loadByProductId(_that.productId,_that.limit);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  loadHistory,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createExport,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createImport,required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  loadHistoryPaginated,required TResult Function()  loadMoreHistory,required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  refreshHistory,required TResult Function( String transactionId,  double newPaidAmount,  double totalValue,  String? customerId,  double previousPaidAmount)  updateDebtPayment,required TResult Function( String productId,  int limit)  loadByProductId,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  loadHistory,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createExport,required TResult Function( entity.Transaction transaction,  List<TransactionItem> items)  createImport,required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  loadHistoryPaginated,required TResult Function()  loadMoreHistory,required TResult Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)  refreshHistory,required TResult Function( String transactionId,  double newPaidAmount,  double totalValue,  String? customerId,  double previousPaidAmount)  updateDebtPayment,required TResult Function( String productId,  int limit)  loadByProductId,required TResult Function( entity.Transaction oldTransaction,  List<TransactionItem> oldItems,  entity.Transaction newTransaction,  List<TransactionItem> newItems)  editTransaction,}) {final _that = this;
 switch (_that) {
 case _LoadHistory():
 return loadHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _CreateExport():
@@ -175,7 +179,8 @@ return loadHistoryPaginated(_that.startDate,_that.endDate,_that.type,_that.wareh
 return loadMoreHistory();case _RefreshHistory():
 return refreshHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _UpdateDebtPayment():
 return updateDebtPayment(_that.transactionId,_that.newPaidAmount,_that.totalValue,_that.customerId,_that.previousPaidAmount);case _LoadByProductId():
-return loadByProductId(_that.productId,_that.limit);}
+return loadByProductId(_that.productId,_that.limit);case _EditTransaction():
+return editTransaction(_that.oldTransaction,_that.oldItems,_that.newTransaction,_that.newItems);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -189,7 +194,7 @@ return loadByProductId(_that.productId,_that.limit);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistoryPaginated,TResult? Function()?  loadMoreHistory,TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  refreshHistory,TResult? Function( String transactionId,  double newPaidAmount,  double totalValue,  String? customerId,  double previousPaidAmount)?  updateDebtPayment,TResult? Function( String productId,  int limit)?  loadByProductId,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistory,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createExport,TResult? Function( entity.Transaction transaction,  List<TransactionItem> items)?  createImport,TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  loadHistoryPaginated,TResult? Function()?  loadMoreHistory,TResult? Function( DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation)?  refreshHistory,TResult? Function( String transactionId,  double newPaidAmount,  double totalValue,  String? customerId,  double previousPaidAmount)?  updateDebtPayment,TResult? Function( String productId,  int limit)?  loadByProductId,TResult? Function( entity.Transaction oldTransaction,  List<TransactionItem> oldItems,  entity.Transaction newTransaction,  List<TransactionItem> newItems)?  editTransaction,}) {final _that = this;
 switch (_that) {
 case _LoadHistory() when loadHistory != null:
 return loadHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _CreateExport() when createExport != null:
@@ -199,7 +204,8 @@ return loadHistoryPaginated(_that.startDate,_that.endDate,_that.type,_that.wareh
 return loadMoreHistory();case _RefreshHistory() when refreshHistory != null:
 return refreshHistory(_that.startDate,_that.endDate,_that.type,_that.warehouseLocation);case _UpdateDebtPayment() when updateDebtPayment != null:
 return updateDebtPayment(_that.transactionId,_that.newPaidAmount,_that.totalValue,_that.customerId,_that.previousPaidAmount);case _LoadByProductId() when loadByProductId != null:
-return loadByProductId(_that.productId,_that.limit);case _:
+return loadByProductId(_that.productId,_that.limit);case _EditTransaction() when editTransaction != null:
+return editTransaction(_that.oldTransaction,_that.oldItems,_that.newTransaction,_that.newItems);case _:
   return null;
 
 }
@@ -746,6 +752,90 @@ as int,
 }
 
 /// @nodoc
+
+
+class _EditTransaction implements TransactionEvent {
+  const _EditTransaction({required this.oldTransaction, required final  List<TransactionItem> oldItems, required this.newTransaction, required final  List<TransactionItem> newItems}): _oldItems = oldItems,_newItems = newItems;
+  
+
+ final  entity.Transaction oldTransaction;
+ final  List<TransactionItem> _oldItems;
+ List<TransactionItem> get oldItems {
+  if (_oldItems is EqualUnmodifiableListView) return _oldItems;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_oldItems);
+}
+
+ final  entity.Transaction newTransaction;
+ final  List<TransactionItem> _newItems;
+ List<TransactionItem> get newItems {
+  if (_newItems is EqualUnmodifiableListView) return _newItems;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_newItems);
+}
+
+
+/// Create a copy of TransactionEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$EditTransactionCopyWith<_EditTransaction> get copyWith => __$EditTransactionCopyWithImpl<_EditTransaction>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EditTransaction&&(identical(other.oldTransaction, oldTransaction) || other.oldTransaction == oldTransaction)&&const DeepCollectionEquality().equals(other._oldItems, _oldItems)&&(identical(other.newTransaction, newTransaction) || other.newTransaction == newTransaction)&&const DeepCollectionEquality().equals(other._newItems, _newItems));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,oldTransaction,const DeepCollectionEquality().hash(_oldItems),newTransaction,const DeepCollectionEquality().hash(_newItems));
+
+@override
+String toString() {
+  return 'TransactionEvent.editTransaction(oldTransaction: $oldTransaction, oldItems: $oldItems, newTransaction: $newTransaction, newItems: $newItems)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$EditTransactionCopyWith<$Res> implements $TransactionEventCopyWith<$Res> {
+  factory _$EditTransactionCopyWith(_EditTransaction value, $Res Function(_EditTransaction) _then) = __$EditTransactionCopyWithImpl;
+@useResult
+$Res call({
+ entity.Transaction oldTransaction, List<TransactionItem> oldItems, entity.Transaction newTransaction, List<TransactionItem> newItems
+});
+
+
+
+
+}
+/// @nodoc
+class __$EditTransactionCopyWithImpl<$Res>
+    implements _$EditTransactionCopyWith<$Res> {
+  __$EditTransactionCopyWithImpl(this._self, this._then);
+
+  final _EditTransaction _self;
+  final $Res Function(_EditTransaction) _then;
+
+/// Create a copy of TransactionEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? oldTransaction = null,Object? oldItems = null,Object? newTransaction = null,Object? newItems = null,}) {
+  return _then(_EditTransaction(
+oldTransaction: null == oldTransaction ? _self.oldTransaction : oldTransaction // ignore: cast_nullable_to_non_nullable
+as entity.Transaction,oldItems: null == oldItems ? _self._oldItems : oldItems // ignore: cast_nullable_to_non_nullable
+as List<TransactionItem>,newTransaction: null == newTransaction ? _self.newTransaction : newTransaction // ignore: cast_nullable_to_non_nullable
+as entity.Transaction,newItems: null == newItems ? _self._newItems : newItems // ignore: cast_nullable_to_non_nullable
+as List<TransactionItem>,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$TransactionState {
 
 
@@ -789,7 +879,7 @@ extension TransactionStatePatterns on TransactionState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _HistoryLoaded value)?  historyLoaded,TResult Function( _Created value)?  created,TResult Function( _Error value)?  error,TResult Function( _DebtUpdated value)?  debtUpdated,TResult Function( _PaginatedHistoryLoaded value)?  paginatedHistoryLoaded,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _HistoryLoaded value)?  historyLoaded,TResult Function( _Created value)?  created,TResult Function( _Error value)?  error,TResult Function( _DebtUpdated value)?  debtUpdated,TResult Function( _Updated value)?  updated,TResult Function( _PaginatedHistoryLoaded value)?  paginatedHistoryLoaded,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -798,7 +888,8 @@ return loading(_that);case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that);case _Created() when created != null:
 return created(_that);case _Error() when error != null:
 return error(_that);case _DebtUpdated() when debtUpdated != null:
-return debtUpdated(_that);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return debtUpdated(_that);case _Updated() when updated != null:
+return updated(_that);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
 return paginatedHistoryLoaded(_that);case _:
   return orElse();
 
@@ -817,7 +908,7 @@ return paginatedHistoryLoaded(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _HistoryLoaded value)  historyLoaded,required TResult Function( _Created value)  created,required TResult Function( _Error value)  error,required TResult Function( _DebtUpdated value)  debtUpdated,required TResult Function( _PaginatedHistoryLoaded value)  paginatedHistoryLoaded,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _HistoryLoaded value)  historyLoaded,required TResult Function( _Created value)  created,required TResult Function( _Error value)  error,required TResult Function( _DebtUpdated value)  debtUpdated,required TResult Function( _Updated value)  updated,required TResult Function( _PaginatedHistoryLoaded value)  paginatedHistoryLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial():
@@ -826,7 +917,8 @@ return loading(_that);case _HistoryLoaded():
 return historyLoaded(_that);case _Created():
 return created(_that);case _Error():
 return error(_that);case _DebtUpdated():
-return debtUpdated(_that);case _PaginatedHistoryLoaded():
+return debtUpdated(_that);case _Updated():
+return updated(_that);case _PaginatedHistoryLoaded():
 return paginatedHistoryLoaded(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -841,7 +933,7 @@ return paginatedHistoryLoaded(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _HistoryLoaded value)?  historyLoaded,TResult? Function( _Created value)?  created,TResult? Function( _Error value)?  error,TResult? Function( _DebtUpdated value)?  debtUpdated,TResult? Function( _PaginatedHistoryLoaded value)?  paginatedHistoryLoaded,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _HistoryLoaded value)?  historyLoaded,TResult? Function( _Created value)?  created,TResult? Function( _Error value)?  error,TResult? Function( _DebtUpdated value)?  debtUpdated,TResult? Function( _Updated value)?  updated,TResult? Function( _PaginatedHistoryLoaded value)?  paginatedHistoryLoaded,}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
@@ -850,7 +942,8 @@ return loading(_that);case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that);case _Created() when created != null:
 return created(_that);case _Error() when error != null:
 return error(_that);case _DebtUpdated() when debtUpdated != null:
-return debtUpdated(_that);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return debtUpdated(_that);case _Updated() when updated != null:
+return updated(_that);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
 return paginatedHistoryLoaded(_that);case _:
   return null;
 
@@ -868,7 +961,7 @@ return paginatedHistoryLoaded(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<entity.Transaction> transactions)?  historyLoaded,TResult Function( String transactionId)?  created,TResult Function( String message)?  error,TResult Function( String transactionId)?  debtUpdated,TResult Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)?  paginatedHistoryLoaded,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( List<entity.Transaction> transactions)?  historyLoaded,TResult Function( String transactionId)?  created,TResult Function( String message)?  error,TResult Function( String transactionId)?  debtUpdated,TResult Function( String transactionId)?  updated,TResult Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)?  paginatedHistoryLoaded,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
@@ -876,7 +969,8 @@ return loading();case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that.transactions);case _Created() when created != null:
 return created(_that.transactionId);case _Error() when error != null:
 return error(_that.message);case _DebtUpdated() when debtUpdated != null:
-return debtUpdated(_that.transactionId);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return debtUpdated(_that.transactionId);case _Updated() when updated != null:
+return updated(_that.transactionId);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
 return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.startDate,_that.endDate,_that.type,_that.warehouseLocation,_that.error);case _:
   return orElse();
 
@@ -895,7 +989,7 @@ return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMo
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<entity.Transaction> transactions)  historyLoaded,required TResult Function( String transactionId)  created,required TResult Function( String message)  error,required TResult Function( String transactionId)  debtUpdated,required TResult Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)  paginatedHistoryLoaded,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( List<entity.Transaction> transactions)  historyLoaded,required TResult Function( String transactionId)  created,required TResult Function( String message)  error,required TResult Function( String transactionId)  debtUpdated,required TResult Function( String transactionId)  updated,required TResult Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)  paginatedHistoryLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial():
 return initial();case _Loading():
@@ -903,7 +997,8 @@ return loading();case _HistoryLoaded():
 return historyLoaded(_that.transactions);case _Created():
 return created(_that.transactionId);case _Error():
 return error(_that.message);case _DebtUpdated():
-return debtUpdated(_that.transactionId);case _PaginatedHistoryLoaded():
+return debtUpdated(_that.transactionId);case _Updated():
+return updated(_that.transactionId);case _PaginatedHistoryLoaded():
 return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.startDate,_that.endDate,_that.type,_that.warehouseLocation,_that.error);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -918,7 +1013,7 @@ return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMo
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<entity.Transaction> transactions)?  historyLoaded,TResult? Function( String transactionId)?  created,TResult? Function( String message)?  error,TResult? Function( String transactionId)?  debtUpdated,TResult? Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)?  paginatedHistoryLoaded,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( List<entity.Transaction> transactions)?  historyLoaded,TResult? Function( String transactionId)?  created,TResult? Function( String message)?  error,TResult? Function( String transactionId)?  debtUpdated,TResult? Function( String transactionId)?  updated,TResult? Function( List<entity.Transaction> transactions,  bool hasMore,  bool isLoadingMore,  dynamic lastDocument,  DateTime? startDate,  DateTime? endDate,  String? type,  String? warehouseLocation,  String? error)?  paginatedHistoryLoaded,}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
@@ -926,7 +1021,8 @@ return loading();case _HistoryLoaded() when historyLoaded != null:
 return historyLoaded(_that.transactions);case _Created() when created != null:
 return created(_that.transactionId);case _Error() when error != null:
 return error(_that.message);case _DebtUpdated() when debtUpdated != null:
-return debtUpdated(_that.transactionId);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
+return debtUpdated(_that.transactionId);case _Updated() when updated != null:
+return updated(_that.transactionId);case _PaginatedHistoryLoaded() when paginatedHistoryLoaded != null:
 return paginatedHistoryLoaded(_that.transactions,_that.hasMore,_that.isLoadingMore,_that.lastDocument,_that.startDate,_that.endDate,_that.type,_that.warehouseLocation,_that.error);case _:
   return null;
 
@@ -1261,6 +1357,72 @@ class __$DebtUpdatedCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? transactionId = null,}) {
   return _then(_DebtUpdated(
+null == transactionId ? _self.transactionId : transactionId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _Updated implements TransactionState {
+  const _Updated(this.transactionId);
+  
+
+ final  String transactionId;
+
+/// Create a copy of TransactionState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$UpdatedCopyWith<_Updated> get copyWith => __$UpdatedCopyWithImpl<_Updated>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Updated&&(identical(other.transactionId, transactionId) || other.transactionId == transactionId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,transactionId);
+
+@override
+String toString() {
+  return 'TransactionState.updated(transactionId: $transactionId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$UpdatedCopyWith<$Res> implements $TransactionStateCopyWith<$Res> {
+  factory _$UpdatedCopyWith(_Updated value, $Res Function(_Updated) _then) = __$UpdatedCopyWithImpl;
+@useResult
+$Res call({
+ String transactionId
+});
+
+
+
+
+}
+/// @nodoc
+class __$UpdatedCopyWithImpl<$Res>
+    implements _$UpdatedCopyWith<$Res> {
+  __$UpdatedCopyWithImpl(this._self, this._then);
+
+  final _Updated _self;
+  final $Res Function(_Updated) _then;
+
+/// Create a copy of TransactionState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? transactionId = null,}) {
+  return _then(_Updated(
 null == transactionId ? _self.transactionId : transactionId // ignore: cast_nullable_to_non_nullable
 as String,
   ));

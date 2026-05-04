@@ -376,6 +376,13 @@ class _JournalPageState extends State<JournalPage> {
                   });
                   return const AppLoadingIndicator();
                 },
+                updated: (_) {
+                  // Refresh list after transaction edit
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _onTransactionCreated();
+                  });
+                  return const AppLoadingIndicator();
+                },
                 error: (e) => AppErrorWidget(
                   message: e.message,
                   onRetry: () => context

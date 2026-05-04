@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../category/category_page.dart';
 import '../customer/customer_list_page.dart';
+import '../formula/formula_list_page.dart';
 
-/// Combined "Danh mục" tab with sub-tabs: Sản phẩm & Khách hàng
+/// Combined "Danh mục" tab with sub-tabs: Sản phẩm, Khách hàng & Công thức
 class CatalogPage extends StatelessWidget {
   const CatalogPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           Material(
@@ -37,6 +38,11 @@ class CatalogPage extends StatelessWidget {
                   text: 'Khách hàng',
                   iconMargin: EdgeInsets.only(bottom: 4),
                 ),
+                Tab(
+                  icon: Icon(Icons.science_outlined, size: 20),
+                  text: 'Công thức',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
               ],
             ),
           ),
@@ -45,6 +51,7 @@ class CatalogPage extends StatelessWidget {
               children: [
                 CategoryPage(showAppBar: false),
                 CustomerListPage(showAppBar: false),
+                FormulaListPage(showAppBar: false),
               ],
             ),
           ),

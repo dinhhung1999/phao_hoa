@@ -76,15 +76,25 @@ class InventoryRemoteDatasource {
       batch.set(itemRef, item);
 
       // 3. Adjust inventory if user confirmed and there's a discrepancy
+      // Use nested map with set+merge to correctly update nested fields
+      // (NOT dot notation which creates corrupted flat fields)
       if (shouldAdjust &&
           item['system_quantity'] != item['actual_quantity']) {
         final diff =
             (item['actual_quantity'] as int) - (item['system_quantity'] as int);
-        batch.update(_invCollection.doc(item['product_id']), {
-          'stock_by_location.$warehouseLocation': item['actual_quantity'],
-          'total_quantity': FieldValue.increment(diff),
-          'last_updated': FieldValue.serverTimestamp(),
-        });
+        final invRef = _invCollection.doc(item['product_id']);
+        // First set the exact value for this location using nested map
+        batch.set(
+          invRef,
+          {
+            'stock_by_location': {
+              warehouseLocation: item['actual_quantity'],
+            },
+            'total_quantity': FieldValue.increment(diff),
+            'last_updated': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
       }
     }
 

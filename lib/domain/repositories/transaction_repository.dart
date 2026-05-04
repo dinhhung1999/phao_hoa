@@ -58,4 +58,13 @@ abstract class TransactionRepository {
     String productId, {
     int limit = 20,
   });
+
+  /// Update an existing transaction (edit within 24h).
+  /// Reverses old inventory, applies new inventory atomically.
+  Future<Either<Failure, void>> updateTransaction({
+    required Transaction oldTransaction,
+    required List<TransactionItem> oldItems,
+    required Transaction newTransaction,
+    required List<TransactionItem> newItems,
+  });
 }

@@ -239,6 +239,27 @@ class TransactionRepositoryImpl implements TransactionRepository {
     unitPriceAtTime: e.unitPriceAtTime,
     subtotal: e.subtotal,
   );
+
+  @override
+  Future<Either<Failure, void>> updateTransaction({
+    required entity.Transaction oldTransaction,
+    required List<TransactionItem> oldItems,
+    required entity.Transaction newTransaction,
+    required List<TransactionItem> newItems,
+  }) async {
+    try {
+      await _datasource.updateTransaction(
+        transactionId: oldTransaction.id,
+        oldTransaction: _txToModel(oldTransaction),
+        oldItems: oldItems.map(_itemToModel).toList(),
+        newTransaction: _txToModel(newTransaction),
+        newItems: newItems.map(_itemToModel).toList(),
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(FirestoreFailure(_friendlyError(e)));
+    }
+  }
 }
 
 /// Extension to create a transaction copy with items

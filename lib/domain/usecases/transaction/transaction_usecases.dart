@@ -131,3 +131,24 @@ class GetTransactionsByProductId {
     return _repository.getTransactionsByProductId(productId, limit: limit);
   }
 }
+
+/// Update an existing transaction (edit within 24h)
+class UpdateTransaction {
+  final TransactionRepository _repository;
+
+  UpdateTransaction(this._repository);
+
+  Future<Either<Failure, void>> call({
+    required Transaction oldTransaction,
+    required List<TransactionItem> oldItems,
+    required Transaction newTransaction,
+    required List<TransactionItem> newItems,
+  }) {
+    return _repository.updateTransaction(
+      oldTransaction: oldTransaction,
+      oldItems: oldItems,
+      newTransaction: newTransaction,
+      newItems: newItems,
+    );
+  }
+}

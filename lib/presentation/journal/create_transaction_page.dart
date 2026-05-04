@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -21,9 +22,17 @@ class CreateTransactionPage extends StatefulWidget {
   /// 'nhap' for import, 'xuat' for export
   final String type;
 
-  const CreateTransactionPage({super.key, required this.type});
+  /// If set, the page opens in edit mode with this transaction's data pre-filled.
+  final entity.Transaction? editTransaction;
+
+  const CreateTransactionPage({
+    super.key,
+    required this.type,
+    this.editTransaction,
+  });
 
   bool get isExport => type == 'xuat';
+  bool get isEditing => editTransaction != null;
 
   @override
   State<CreateTransactionPage> createState() => _CreateTransactionPageState();
@@ -60,6 +69,48 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     if (widget.isExport) {
       context.read<CustomerBloc>().add(const CustomerEvent.loadCustomers());
       _loadStocks();
+    }
+    // Pre-fill data if editing
+    if (widget.isEditing) {
+      _populateEditData();
+    }
+  }
+
+  /// Pre-fill form fields from existing transaction for edit mode
+  void _populateEditData() {
+    final tx = widget.editTransaction!;
+    _warehouseLocation = tx.warehouseLocation;
+    _noteCtl.text = tx.note ?? '';
+    _isDebt = tx.isDebt;
+    _paidAmountCtl.text = CurrencyFormatter.formatPlain(tx.paidAmount);
+
+    if (widget.isExport) {
+      _customerType = tx.customerType;
+      if (tx.customerType != 'khach_quen') {
+        _customerNameCtl.text = tx.customerName;
+      }
+      // _selectedCustomer will be resolved after CustomerBloc loads
+    } else {
+      _sourceCtl.text = tx.customerName;
+    }
+
+    // Pre-fill items from transaction
+    for (final item in tx.items) {
+      _items.add(_ItemEntry(
+        product: Product(
+          id: item.productId,
+          name: item.productName,
+          unit: '',
+          importPrice: item.unitPriceAtTime,
+          exportPrice: item.unitPriceAtTime,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+        quantityCtl: TextEditingController(text: item.quantity.toString()),
+        priceCtl: TextEditingController(
+          text: CurrencyFormatter.formatPlain(item.unitPriceAtTime),
+        ),
+      ));
     }
   }
 
@@ -328,7 +379,15 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
 
     if (!mounted) return;
     final bloc = context.read<TransactionBloc>();
-    if (widget.isExport) {
+    if (widget.isEditing) {
+      // Edit mode: update existing transaction
+      bloc.add(TransactionEvent.editTransaction(
+        oldTransaction: widget.editTransaction!,
+        oldItems: widget.editTransaction!.items,
+        newTransaction: transaction,
+        newItems: items,
+      ));
+    } else if (widget.isExport) {
       bloc.add(TransactionEvent.createExport(
           transaction: transaction, items: items));
     } else {
@@ -356,6 +415,15 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
             );
             Navigator.of(context).pop(true);
           },
+          updated: (_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã cập nhật phiếu thành công'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+            Navigator.of(context).pop(true);
+          },
           error: (e) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -370,8 +438,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           appBar: AppBar(
-            title:
-                Text(widget.isExport ? 'Tạo phiếu xuất kho' : 'Tạo phiếu nhập kho'),
+            title: Text(widget.isEditing
+                ? (widget.isExport ? 'Sửa phiếu xuất kho' : 'Sửa phiếu nhập kho')
+                : (widget.isExport ? 'Tạo phiếu xuất kho' : 'Tạo phiếu nhập kho')),
           ),
           body: Form(
             key: _formKey,
@@ -636,7 +705,12 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       width: 80,
                                       child: TextFormField(
                                         controller: item.quantityCtl,
-                                        keyboardType: TextInputType.number,
+                                        keyboardType: TextInputType.text,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.allow(
+                                            RegExp(r'[\d\+\-\*\/\(\)\. ]'),
+                                          ),
+                                        ],
                                         textAlign: TextAlign.center,
                                         decoration: InputDecoration(
                                           isDense: true,
@@ -785,9 +859,11 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                             : Icon(widget.isExport
                                 ? Icons.arrow_upward
                                 : Icons.arrow_downward),
-                        label: Text(widget.isExport
-                            ? 'Xác nhận xuất kho'
-                            : 'Xác nhận nhập kho'),
+                        label: Text(widget.isEditing
+                            ? 'Cập nhật phiếu'
+                            : (widget.isExport
+                                ? 'Xác nhận xuất kho'
+                                : 'Xác nhận nhập kho')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: color,
                           foregroundColor: Colors.white,

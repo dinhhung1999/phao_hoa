@@ -384,5 +384,125 @@ class TransactionRemoteDatasource {
     results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return results.take(limit).toList();
   }
-}
 
+  /// Update an existing transaction (edit within 24h).
+  ///
+  /// Atomically:
+  /// 1. Reverse old inventory adjustments
+  /// 2. Delete old item sub-documents
+  /// 3. Update transaction document with new data
+  /// 4. Create new item sub-documents
+  /// 5. Apply new inventory adjustments
+  Future<void> updateTransaction({
+    required String transactionId,
+    required TransactionModel oldTransaction,
+    required List<TransactionItemModel> oldItems,
+    required TransactionModel newTransaction,
+    required List<TransactionItemModel> newItems,
+  }) async {
+    final batch = _firestore.batch();
+    final txDocRef = _txCollection.doc(transactionId);
+    final isExport = oldTransaction.type == 'xuat';
+    final oldLocationKey = _toLocationKey(oldTransaction.warehouseLocation);
+    final newLocationKey = _toLocationKey(newTransaction.warehouseLocation);
+
+    // 1. Reverse old inventory adjustments
+    for (final item in oldItems) {
+      final invRef = _invCollection.doc(item.productId);
+      if (isExport) {
+        // Was export (decreased stock) → add back
+        batch.set(invRef, {
+          'stock_by_location': {
+            oldLocationKey: FieldValue.increment(item.quantity),
+          },
+          'total_quantity': FieldValue.increment(item.quantity),
+          'last_updated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } else {
+        // Was import (increased stock) → subtract back
+        batch.set(invRef, {
+          'stock_by_location': {
+            oldLocationKey: FieldValue.increment(-item.quantity),
+          },
+          'total_quantity': FieldValue.increment(-item.quantity),
+          'last_updated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    }
+
+    // 2. Delete old item sub-documents
+    final oldItemsSnap = await txDocRef
+        .collection(FirestorePaths.transactionItems)
+        .get();
+    for (final doc in oldItemsSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 3. Update transaction document
+    final txData = newTransaction.toJson()..remove('id');
+    txData['total_quantity'] = newItems.fold<int>(0, (s, item) => s + item.quantity);
+    txData['items_summary'] = newItems.map((item) => {
+      'name': item.productName,
+      'qty': item.quantity,
+      'price': item.unitPriceAtTime,
+    }).toList();
+    txData['product_ids'] = newItems.map((item) => item.productId).toSet().toList();
+    txData['updated_at'] = FieldValue.serverTimestamp();
+    batch.update(txDocRef, txData);
+
+    // 4. Create new item sub-documents
+    for (final item in newItems) {
+      final itemRef = txDocRef.collection(FirestorePaths.transactionItems).doc();
+      final itemData = item.toJson()..remove('id');
+      batch.set(itemRef, itemData);
+    }
+
+    // 5. Apply new inventory adjustments
+    for (final item in newItems) {
+      final invRef = _invCollection.doc(item.productId);
+      if (isExport) {
+        // Export → decrease stock
+        batch.set(invRef, {
+          'product_id': item.productId,
+          'product_name': item.productName,
+          'stock_by_location': {
+            newLocationKey: FieldValue.increment(-item.quantity),
+          },
+          'total_quantity': FieldValue.increment(-item.quantity),
+          'last_updated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } else {
+        // Import → increase stock
+        batch.set(invRef, {
+          'product_id': item.productId,
+          'product_name': item.productName,
+          'stock_by_location': {
+            newLocationKey: FieldValue.increment(item.quantity),
+          },
+          'total_quantity': FieldValue.increment(item.quantity),
+          'last_updated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    }
+
+    // 6. Handle debt changes if applicable
+    if (oldTransaction.isDebt && oldTransaction.customerId != null) {
+      final oldUnpaid = oldTransaction.totalValue - oldTransaction.paidAmount;
+      // Reverse old debt
+      batch.update(_custCollection.doc(oldTransaction.customerId!), {
+        'total_debt': FieldValue.increment(-oldUnpaid),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    }
+    if (newTransaction.isDebt && newTransaction.customerId != null) {
+      final newUnpaid = newTransaction.totalValue - newTransaction.paidAmount;
+      // Apply new debt
+      batch.update(_custCollection.doc(newTransaction.customerId!), {
+        'total_debt': FieldValue.increment(newUnpaid),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await _retryOperation(() => batch.commit());
+  }
+}

@@ -9,6 +9,7 @@ import 'presentation/category/category_bloc.dart';
 import 'presentation/journal/transaction_bloc.dart';
 import 'presentation/customer/customer_bloc.dart';
 import 'presentation/checklist/checklist_bloc.dart';
+import 'presentation/formula/formula_bloc.dart';
 import 'presentation/home_page.dart';
 
 class PhaoHoaApp extends StatelessWidget {
@@ -24,6 +25,7 @@ class PhaoHoaApp extends StatelessWidget {
         BlocProvider(create: (_) => sl<TransactionBloc>()),
         BlocProvider(create: (_) => sl<CustomerBloc>()),
         BlocProvider(create: (_) => sl<ChecklistBloc>()),
+        BlocProvider(create: (_) => sl<FormulaBloc>()),
       ],
       child: MaterialApp(
         title: 'Quản lý Kho Pháo Hoa',

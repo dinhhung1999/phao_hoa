@@ -141,6 +141,10 @@ class _DailyReportPageState extends State<DailyReportPage> {
                     _loadReport();
                     return const AppLoadingIndicator();
                   },
+                  updated: (_) {
+                    _loadReport();
+                    return const AppLoadingIndicator();
+                  },
                   error: (e) => AppErrorWidget(
                     message: e.message,
                     onRetry: _loadReport,
