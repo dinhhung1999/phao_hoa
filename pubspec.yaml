@@ -41,6 +41,9 @@ dependencies:
   # Notifications
   flutter_local_notifications: ^21.0.0
 
+  # Timezone (required for scheduled notifications)
+  timezone: ^0.11.0
+
   # Contacts
   flutter_contacts: ^1.1.9+2
 

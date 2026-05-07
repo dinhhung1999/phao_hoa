@@ -51,5 +51,10 @@
 	</array>
 	<key>NSContactsUsageDescription</key>
 	<string>Ứng dụng cần truy cập danh bạ để thêm khách hàng nhanh hơn</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

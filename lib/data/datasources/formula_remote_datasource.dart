@@ -46,6 +46,10 @@ class FormulaRemoteDatasource {
   Future<String> saveFormula(ProductFormulaModel formula) async {
     final data = formula.toJson()..remove('id');
     data['updated_at'] = FieldValue.serverTimestamp();
+    // Explicitly serialize nested components (freezed doesn't use explicitToJson)
+    data['components'] = formula.components
+        .map((c) => c.toJson())
+        .toList();
 
     if (formula.id.isNotEmpty) {
       // Update existing

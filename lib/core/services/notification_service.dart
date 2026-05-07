@@ -1,5 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 /// Service for managing daily report reminder notifications
 class NotificationService {
@@ -16,8 +18,12 @@ class NotificationService {
   static const String _channelDescription =
       'Nhắc nhở báo cáo nhập xuất kho hàng ngày';
 
-  /// Initialize notification plugin
+  /// Initialize notification plugin and timezone data
   Future<void> init() async {
+    // Initialize timezone database (required for zonedSchedule)
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
+
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -25,13 +31,13 @@ class NotificationService {
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
-    const settings = InitializationSettings(
+    const initSettings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
     );
 
     await _plugin.initialize(
-      settings: settings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
@@ -72,7 +78,11 @@ class NotificationService {
     return true;
   }
 
-  /// Schedule daily reminder at specified time
+  /// Schedule daily reminder at specified time using OS-level scheduling.
+  ///
+  /// Uses [zonedSchedule] with [DateTimeComponents.time] so the OS
+  /// delivers the notification every day at the given hour:minute,
+  /// even when the app is suspended or terminated — critical for iOS.
   Future<void> scheduleDailyReminder({
     int hour = 20,
     int minute = 0,
@@ -80,27 +90,55 @@ class NotificationService {
     // Cancel any existing reminder first
     await cancelDailyReminder();
 
-    // Schedule using periodic notification approach
-    // Since zonedSchedule requires timezone package, we use a simpler approach
-    // by scheduling show for today/tomorrow at the specified time
+    // Build the next occurrence of hour:minute in the local timezone
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
 
-    final now = DateTime.now();
-    var scheduledTime = DateTime(now.year, now.month, now.day, hour, minute);
-
-    // If the time has passed today, schedule for tomorrow
-    if (scheduledTime.isBefore(now)) {
-      scheduledTime = scheduledTime.add(const Duration(days: 1));
+    // If the time has already passed today, push to tomorrow
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    final delay = scheduledTime.difference(now);
+    const androidDetails = AndroidNotificationDetails(
+      _channelId,
+      _channelName,
+      channelDescription: _channelDescription,
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      styleInformation: BigTextStyleInformation(
+        'Đã đến giờ báo cáo! Hãy kiểm tra và xác nhận các giao dịch nhập xuất trong ngày.',
+        contentTitle: '📊 Nhắc nhở báo cáo hàng ngày',
+      ),
+    );
 
-    // Schedule using Future.delayed approach for the first notification
-    // In production, you'd use workmanager or alarm_manager for reliable bg scheduling
-    Future.delayed(delay, () async {
-      await _showReminderNotification();
-      // Re-schedule for the next day
-      scheduleDailyReminder(hour: hour, minute: minute);
-    });
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _plugin.zonedSchedule(
+      id: _dailyReportNotificationId,
+      title: '📊 Nhắc nhở báo cáo hàng ngày',
+      body: 'Đã đến giờ báo cáo! Kiểm tra giao dịch nhập xuất trong ngày.',
+      scheduledDate: scheduledDate,
+      notificationDetails: details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
   }
 
   /// Show the reminder notification immediately
