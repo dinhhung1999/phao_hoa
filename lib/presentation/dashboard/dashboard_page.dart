@@ -57,28 +57,34 @@ class _DashboardPageState extends State<DashboardPage>
 
   /// Filter & search stocks
   List<WarehouseStock> _filterStocks(
-      List<WarehouseStock> stocks, int tabIndex) {
+    List<WarehouseStock> stocks,
+    int tabIndex,
+  ) {
     var filtered = stocks;
 
     // Filter by warehouse if a specific tab is selected
     if (tabIndex > 0) {
       final key = _locationKeys[tabIndex - 1];
-      filtered =
-          filtered.where((s) => s.getStockAt(key) != 0).toList();
+      filtered = filtered.where((s) => s.getStockAt(key) != 0).toList();
     }
 
     // Search
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      filtered =
-          filtered.where((s) => s.productName.toLowerCase().contains(q)).toList();
+      filtered = filtered
+          .where((s) => s.productName.toLowerCase().contains(q))
+          .toList();
     }
 
     return filtered;
   }
 
   int _getLowStockCount(List<WarehouseStock> stocks) {
-    return stocks.where((s) => s.totalQuantity < _criticalThreshold && s.totalQuantity > 0).length;
+    return stocks
+        .where(
+          (s) => s.totalQuantity < _criticalThreshold && s.totalQuantity > 0,
+        )
+        .length;
   }
 
   int _getOutOfStockCount(List<WarehouseStock> stocks) {
@@ -94,20 +100,19 @@ class _DashboardPageState extends State<DashboardPage>
           builder: (context, state) {
             return state.map(
               initial: (_) {
-                context
-                    .read<DashboardBloc>()
-                    .add(const DashboardEvent.loadDashboard());
+                context.read<DashboardBloc>().add(
+                  const DashboardEvent.loadDashboard(),
+                );
                 return const AppLoadingIndicator();
               },
-              loading: (_) => const AppLoadingIndicator(
-                message: 'Đang tải dữ liệu...',
-              ),
+              loading: (_) =>
+                  const AppLoadingIndicator(message: 'Đang tải dữ liệu...'),
               loaded: (loaded) => _buildBody(loaded.stocks, loaded.totalValue),
               error: (e) => AppErrorWidget(
                 message: e.message,
-                onRetry: () => context
-                    .read<DashboardBloc>()
-                    .add(const DashboardEvent.loadDashboard()),
+                onRetry: () => context.read<DashboardBloc>().add(
+                  const DashboardEvent.loadDashboard(),
+                ),
               ),
             );
           },
@@ -145,78 +150,48 @@ class _DashboardPageState extends State<DashboardPage>
 
     return RefreshIndicator(
       onRefresh: () async {
-        context
-            .read<DashboardBloc>()
-            .add(const DashboardEvent.refreshDashboard());
+        context.read<DashboardBloc>().add(
+          const DashboardEvent.refreshDashboard(),
+        );
       },
       child: Column(
         children: [
           // ── Summary Cards ──
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              children: [
-                _SummaryCard(
-                  icon: Icons.inventory_2,
-                  label: 'Tổng sản phẩm',
-                  value: '${stocks.length}',
-                  color: AppColors.info,
-                ),
-                const SizedBox(width: 10),
-                _SummaryCard(
-                  icon: Icons.account_balance_wallet,
-                  label: 'Giá trị kho',
-                  value: CurrencyFormatter.format(totalValue),
-                  color: AppColors.primary,
-                  wide: true,
-                ),
-                const SizedBox(width: 10),
-                _SummaryCard(
-                  icon: Icons.warning_amber_rounded,
-                  label: 'Sắp hết',
-                  value: '$lowCount',
-                  color: lowCount > 0 ? AppColors.warning : AppColors.success,
-                ),
-                const SizedBox(width: 10),
-                _SummaryCard(
-                  icon: Icons.remove_shopping_cart,
-                  label: 'Hết hàng',
-                  value: '$outOfStockCount',
-                  color: outOfStockCount > 0
-                      ? AppColors.error
-                      : AppColors.success,
-                ),
-              ],
-            ),
+          _buildSummaryCards(
+            stocks.length,
+            totalValue,
+            lowCount,
+            outOfStockCount,
           ),
 
           // ── Search Bar ──
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Tìm sản phẩm trong kho...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(() => _searchQuery = ''),
-                      )
-                    : null,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Tìm sản phẩm trong kho...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () => setState(() => _searchQuery = ''),
+                        )
+                      : null,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 ),
-                filled: true,
-                fillColor: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.5),
+                onChanged: (v) => setState(() => _searchQuery = v),
               ),
-              onChanged: (v) => setState(() => _searchQuery = v),
             ),
           ),
 
@@ -237,12 +212,14 @@ class _DashboardPageState extends State<DashboardPage>
               _buildTab(Icons.select_all, 'Tất cả', stocks.length),
               ...List.generate(AppConstants.warehouseLocationNames.length, (i) {
                 final key = _locationKeys[i];
-                final count =
-                    stocks.where((s) => s.getStockAt(key) != 0).length;
+                final count = stocks
+                    .where((s) => s.getStockAt(key) != 0)
+                    .length;
                 return _buildTab(
-                    Icons.warehouse_outlined,
-                    AppConstants.warehouseLocationNames[i],
-                    count);
+                  Icons.warehouse_outlined,
+                  AppConstants.warehouseLocationNames[i],
+                  count,
+                );
               }),
             ],
           ),
@@ -253,7 +230,8 @@ class _DashboardPageState extends State<DashboardPage>
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: InkWell(
                 onTap: () {
-                  final warehouseName = AppConstants.warehouseLocationNames[_tabController!.index - 1];
+                  final warehouseName = AppConstants
+                      .warehouseLocationNames[_tabController!.index - 1];
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => TransactionHistoryPage(
@@ -265,7 +243,10 @@ class _DashboardPageState extends State<DashboardPage>
                 },
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -307,52 +288,85 @@ class _DashboardPageState extends State<DashboardPage>
           Expanded(
             child: Builder(
               builder: (context) {
-                final filtered =
-                    _filterStocks(stocks, _tabController!.index);
+                final filtered = _filterStocks(stocks, _tabController!.index);
                 if (filtered.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.inventory_2_outlined,
-                            size: 64, color: AppColors.textHint),
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 64,
+                          color: AppColors.textHint,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           _searchQuery.isNotEmpty
                               ? 'Không tìm thấy "$_searchQuery"'
                               : 'Chưa có dữ liệu tồn kho',
-                          style:
-                              const TextStyle(color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
                   );
                 }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final stock = filtered[index];
-                    return _StockCard(
-                      stock: stock,
-                      tabIndex: _tabController!.index,
-                      displayQuantity: _getDisplayQuantity(
-                          stock, _tabController!.index),
-                      criticalThreshold: _criticalThreshold,
-                      lowThreshold: _lowThreshold,
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(20)),
+                Widget buildCard(int index) {
+                  final stock = filtered[index];
+                  return _StockCard(
+                    stock: stock,
+                    tabIndex: _tabController!.index,
+                    displayQuantity: _getDisplayQuantity(
+                      stock,
+                      _tabController!.index,
+                    ),
+                    criticalThreshold: _criticalThreshold,
+                    lowThreshold: _lowThreshold,
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        constraints: const BoxConstraints(maxWidth: 760),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20),
                           ),
-                          builder: (_) => InventoryDetailSheet(stock: stock),
-                        );
-                      },
+                        ),
+                        builder: (_) => InventoryDetailSheet(stock: stock),
+                      );
+                    },
+                  );
+                }
+
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth >= 920) {
+                      return GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          mainAxisExtent:
+                              160 +
+                              26.0 *
+                                  (_tabController!.index == 0
+                                      ? AppConstants
+                                            .warehouseLocationNames
+                                            .length
+                                      : 1),
+                        ),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) => buildCard(index),
+                      );
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) => buildCard(index),
                     );
                   },
                 );
@@ -361,6 +375,72 @@ class _DashboardPageState extends State<DashboardPage>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryCards(
+    int productCount,
+    double totalValue,
+    int lowCount,
+    int outOfStockCount,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 650;
+        final columns = constraints.maxWidth >= 1050 ? 4 : 2;
+        final cardWidth = isWide
+            ? (constraints.maxWidth - 40 - (columns - 1) * 12) / columns
+            : null;
+        final cards = [
+          _SummaryCard(
+            icon: Icons.inventory_2,
+            label: 'Tổng sản phẩm',
+            value: '$productCount',
+            color: AppColors.info,
+            width: cardWidth,
+          ),
+          _SummaryCard(
+            icon: Icons.account_balance_wallet,
+            label: 'Giá trị kho',
+            value: CurrencyFormatter.format(totalValue),
+            color: AppColors.primary,
+            wide: true,
+            width: cardWidth,
+          ),
+          _SummaryCard(
+            icon: Icons.warning_amber_rounded,
+            label: 'Sắp hết',
+            value: '$lowCount',
+            color: lowCount > 0 ? AppColors.warning : AppColors.success,
+            width: cardWidth,
+          ),
+          _SummaryCard(
+            icon: Icons.remove_shopping_cart,
+            label: 'Hết hàng',
+            value: '$outOfStockCount',
+            color: outOfStockCount > 0 ? AppColors.error : AppColors.success,
+            width: cardWidth,
+          ),
+        ];
+        if (isWide) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Wrap(spacing: 12, runSpacing: 12, children: cards),
+          );
+        }
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(
+            children: [
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(width: 10),
+                cards[i],
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -404,6 +484,7 @@ class _SummaryCard extends StatelessWidget {
   final String value;
   final Color color;
   final bool wide;
+  final double? width;
 
   const _SummaryCard({
     required this.icon,
@@ -411,12 +492,13 @@ class _SummaryCard extends StatelessWidget {
     required this.value,
     required this.color,
     this.wide = false,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: wide ? 160 : 120,
+      width: width ?? (wide ? 160 : 120),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -448,10 +530,7 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
-              color: color.withValues(alpha: 0.7),
-            ),
+            style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7)),
           ),
         ],
       ),
@@ -544,8 +623,10 @@ class _StockCard extends StatelessWidget {
                   ),
                   // Status badge
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -598,7 +679,9 @@ class _StockCard extends StatelessWidget {
                   final key = locationKeys[i];
                   final qty = stock.getStockAt(key);
                   final total = stock.totalQuantity;
-                  final ratio = total > 0 ? (qty.abs() / total).clamp(0.0, 1.0) : 0.0;
+                  final ratio = total > 0
+                      ? (qty.abs() / total).clamp(0.0, 1.0)
+                      : 0.0;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: _WarehouseBar(

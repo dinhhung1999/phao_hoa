@@ -96,21 +96,23 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
 
     // Pre-fill items from transaction
     for (final item in tx.items) {
-      _items.add(_ItemEntry(
-        product: Product(
-          id: item.productId,
-          name: item.productName,
-          unit: '',
-          importPrice: item.unitPriceAtTime,
-          exportPrice: item.unitPriceAtTime,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+      _items.add(
+        _ItemEntry(
+          product: Product(
+            id: item.productId,
+            name: item.productName,
+            unit: '',
+            importPrice: item.unitPriceAtTime,
+            exportPrice: item.unitPriceAtTime,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          quantityCtl: TextEditingController(text: item.quantity.toString()),
+          priceCtl: TextEditingController(
+            text: CurrencyFormatter.formatPlain(item.unitPriceAtTime),
+          ),
         ),
-        quantityCtl: TextEditingController(text: item.quantity.toString()),
-        priceCtl: TextEditingController(
-          text: CurrencyFormatter.formatPlain(item.unitPriceAtTime),
-        ),
-      ));
+      );
     }
   }
 
@@ -129,17 +131,14 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   /// Load inventory stocks to display available quantities for export
   Future<void> _loadStocks() async {
     final result = await sl<GetDashboardSummary>().call();
-    result.fold(
-      (_) {},
-      (stocks) {
-        if (mounted) {
-          setState(() {
-            _stockMap = {for (final s in stocks) s.productId: s};
-            _stocksLoaded = true;
-          });
-        }
-      },
-    );
+    result.fold((_) {}, (stocks) {
+      if (mounted) {
+        setState(() {
+          _stockMap = {for (final s in stocks) s.productId: s};
+          _stocksLoaded = true;
+        });
+      }
+    });
   }
 
   /// Get available stock for a product at the currently selected warehouse
@@ -178,21 +177,24 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   void _addItem(Product product) {
     // Check if product already added
     if (_items.any((e) => e.product.id == product.id)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sản phẩm đã được thêm')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sản phẩm đã được thêm')));
       return;
     }
-    final defaultPrice =
-        widget.isExport ? product.exportPrice : product.importPrice;
+    final defaultPrice = widget.isExport
+        ? product.exportPrice
+        : product.importPrice;
     setState(() {
-      _items.add(_ItemEntry(
-        product: product,
-        quantityCtl: TextEditingController(text: '1'),
-        priceCtl: TextEditingController(
-          text: CurrencyFormatter.formatPlain(defaultPrice),
+      _items.add(
+        _ItemEntry(
+          product: product,
+          quantityCtl: TextEditingController(text: '1'),
+          priceCtl: TextEditingController(
+            text: CurrencyFormatter.formatPlain(defaultPrice),
+          ),
         ),
-      ));
+      );
     });
   }
 
@@ -245,7 +247,11 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
           builder: (ctx) => AlertDialog(
             title: const Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.error,
+                  size: 24,
+                ),
                 SizedBox(width: 8),
                 Text('Cảnh báo âm kho', style: TextStyle(fontSize: 17)),
               ],
@@ -260,26 +266,36 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                     style: TextStyle(fontSize: 14),
                   ),
                   const SizedBox(height: 12),
-                  ...negativeItems.map((e) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(e['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Tồn: ${e['available']} → Xuất: ${e['qty']} → Âm: ${e['deficit']}',
-                          style: const TextStyle(fontSize: 13, color: AppColors.error),
+                  ...negativeItems.map(
+                    (e) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.error.withValues(alpha: 0.2),
                         ),
-                      ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            e['name'] as String,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tồn: ${e['available']} → Xuất: ${e['qty']} → Âm: ${e['deficit']}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
                   const SizedBox(height: 8),
                   const Text(
                     'Bạn có chắc chắn muốn tiếp tục xuất kho?',
@@ -326,9 +342,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     String userEmail = '';
     if (!mounted) return;
     final authState = context.read<AuthBloc>().state;
-    authState.mapOrNull(
-      authenticated: (auth) => userEmail = auth.user.email,
-    );
+    authState.mapOrNull(authenticated: (auth) => userEmail = auth.user.email);
 
     // Determine customer info based on transaction type
     String customerName;
@@ -352,12 +366,18 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     }
 
     // Calculate debt values
-    final bool isDebt = widget.isExport && _isDebt && _customerType == 'khach_quen' && customerId != null;
+    final bool isDebt =
+        widget.isExport &&
+        _isDebt &&
+        _customerType == 'khach_quen' &&
+        customerId != null;
     double paidAmount = _totalValue;
     if (isDebt) {
-      final parsedPaid = double.tryParse(
-        _paidAmountCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
-      ) ?? 0;
+      final parsedPaid =
+          double.tryParse(
+            _paidAmountCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
+          ) ??
+          0;
       paidAmount = parsedPaid.clamp(0, _totalValue);
     }
 
@@ -381,25 +401,30 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     final bloc = context.read<TransactionBloc>();
     if (widget.isEditing) {
       // Edit mode: update existing transaction
-      bloc.add(TransactionEvent.editTransaction(
-        oldTransaction: widget.editTransaction!,
-        oldItems: widget.editTransaction!.items,
-        newTransaction: transaction,
-        newItems: items,
-      ));
+      bloc.add(
+        TransactionEvent.editTransaction(
+          oldTransaction: widget.editTransaction!,
+          oldItems: widget.editTransaction!.items,
+          newTransaction: transaction,
+          newItems: items,
+        ),
+      );
     } else if (widget.isExport) {
-      bloc.add(TransactionEvent.createExport(
-          transaction: transaction, items: items));
+      bloc.add(
+        TransactionEvent.createExport(transaction: transaction, items: items),
+      );
     } else {
-      bloc.add(TransactionEvent.createImport(
-          transaction: transaction, items: items));
+      bloc.add(
+        TransactionEvent.createImport(transaction: transaction, items: items),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        widget.isExport ? AppColors.exportColor : AppColors.importColor;
+    final color = widget.isExport
+        ? AppColors.exportColor
+        : AppColors.importColor;
 
     return BlocListener<TransactionBloc, TransactionState>(
       listener: (context, state) {
@@ -407,9 +432,11 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
           created: (_) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(widget.isExport
-                    ? 'Đã tạo phiếu xuất kho'
-                    : 'Đã tạo phiếu nhập kho'),
+                content: Text(
+                  widget.isExport
+                      ? 'Đã tạo phiếu xuất kho'
+                      : 'Đã tạo phiếu nhập kho',
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -438,19 +465,32 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           appBar: AppBar(
-            title: Text(widget.isEditing
-                ? (widget.isExport ? 'Sửa phiếu xuất kho' : 'Sửa phiếu nhập kho')
-                : (widget.isExport ? 'Tạo phiếu xuất kho' : 'Tạo phiếu nhập kho')),
+            title: Text(
+              widget.isEditing
+                  ? (widget.isExport
+                        ? 'Sửa phiếu xuất kho'
+                        : 'Sửa phiếu nhập kho')
+                  : (widget.isExport
+                        ? 'Tạo phiếu xuất kho'
+                        : 'Tạo phiếu nhập kho'),
+            ),
           ),
           body: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.sizeOf(context).width > 1000
+                    ? (MediaQuery.sizeOf(context).width - 960) / 2
+                    : 20,
+                vertical: 20,
+              ),
               children: [
                 // ── Type indicator ──
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -492,7 +532,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                     return DropdownMenuItem(value: name, child: Text(name));
                   }).toList(),
                   onChanged: (v) => setState(
-                      () => _warehouseLocation = v ?? _warehouseLocation),
+                    () => _warehouseLocation = v ?? _warehouseLocation,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -514,7 +555,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 const SizedBox(height: 8),
 
                 // ── Debt section (export + khách quen only) ──
-                if (widget.isExport && _customerType == 'khach_quen' && _selectedCustomer != null) ...[
+                if (widget.isExport &&
+                    _customerType == 'khach_quen' &&
+                    _selectedCustomer != null) ...[
                   const Divider(),
                   const SizedBox(height: 8),
                   _buildDebtSection(),
@@ -529,8 +572,10 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                   children: [
                     const Text(
                       'Sản phẩm',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
                     TextButton.icon(
                       onPressed: () => _showProductPicker(context),
@@ -548,13 +593,18 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                       child: Center(
                         child: Column(
                           children: [
-                            Icon(Icons.inventory_2_outlined,
-                                size: 40, color: AppColors.textHintOf(context)),
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 40,
+                              color: AppColors.textHintOf(context),
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               'Chưa có sản phẩm nào\nNhấn "Thêm" để chọn sản phẩm',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textSecondaryOf(context)),
+                              style: TextStyle(
+                                color: AppColors.textSecondaryOf(context),
+                              ),
                             ),
                           ],
                         ),
@@ -580,8 +630,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                   child: Text(
                                     item.product.name,
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
                                   ),
                                 ),
                                 IconButton(
@@ -596,50 +647,75 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                             ),
                             // Available stock indicator (export only)
                             if (widget.isExport && _stocksLoaded)
-                              Builder(builder: (context) {
-                                final available = _getAvailableStock(item.product.id);
-                                final currentQty = _resolveQuantity(item.quantityCtl.text);
-                                final willBeNegative = currentQty > available;
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 4, bottom: 4),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        willBeNegative ? Icons.warning_amber : Icons.inventory_2_outlined,
-                                        size: 14,
-                                        color: willBeNegative ? AppColors.error : AppColors.textSecondaryOf(context),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Tồn kho: $available',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: willBeNegative ? AppColors.error : AppColors.textSecondaryOf(context),
+                              Builder(
+                                builder: (context) {
+                                  final available = _getAvailableStock(
+                                    item.product.id,
+                                  );
+                                  final currentQty = _resolveQuantity(
+                                    item.quantityCtl.text,
+                                  );
+                                  final willBeNegative = currentQty > available;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: 4,
+                                      bottom: 4,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          willBeNegative
+                                              ? Icons.warning_amber
+                                              : Icons.inventory_2_outlined,
+                                          size: 14,
+                                          color: willBeNegative
+                                              ? AppColors.error
+                                              : AppColors.textSecondaryOf(
+                                                  context,
+                                                ),
                                         ),
-                                      ),
-                                      if (willBeNegative) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.error.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(4),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Tồn kho: $available',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: willBeNegative
+                                                ? AppColors.error
+                                                : AppColors.textSecondaryOf(
+                                                    context,
+                                                  ),
                                           ),
-                                          child: Text(
-                                            'Âm ${available - currentQty}',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.error,
+                                        ),
+                                        if (willBeNegative) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.error.withValues(
+                                                alpha: 0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              'Âm ${available - currentQty}',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.error,
+                                              ),
                                             ),
                                           ),
-                                        ),
+                                        ],
                                       ],
-                                    ],
-                                  ),
-                                );
-                              }),
+                                    ),
+                                  );
+                                },
+                              ),
                             const SizedBox(height: 4),
                             // Row 2: Price + Quantity + Subtotal
                             Row(
@@ -653,7 +729,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       'Đơn giá',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.textSecondaryOf(context),
+                                        color: AppColors.textSecondaryOf(
+                                          context,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -665,19 +743,27 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                         textAlign: TextAlign.end,
                                         decoration: InputDecoration(
                                           isDense: true,
-                                          contentPadding: const EdgeInsets.symmetric(
-                                              vertical: 8, horizontal: 8),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                vertical: 8,
+                                                horizontal: 8,
+                                              ),
                                           suffixText: 'đ',
                                           suffixStyle: TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.textSecondaryOf(context),
+                                            color: AppColors.textSecondaryOf(
+                                              context,
+                                            ),
                                           ),
                                         ),
                                         style: const TextStyle(fontSize: 13),
                                         validator: (v) {
                                           final parsed = double.tryParse(
-                                              (v ?? '').replaceAll(
-                                                  RegExp(r'[^\d]'), ''));
+                                            (v ?? '').replaceAll(
+                                              RegExp(r'[^\d]'),
+                                              '',
+                                            ),
+                                          );
                                           if (parsed == null || parsed <= 0) {
                                             return 'Giá > 0';
                                           }
@@ -697,7 +783,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       'Số lượng',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.textSecondaryOf(context),
+                                        color: AppColors.textSecondaryOf(
+                                          context,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -714,12 +802,17 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                         textAlign: TextAlign.center,
                                         decoration: InputDecoration(
                                           isDense: true,
-                                          contentPadding: const EdgeInsets.symmetric(
-                                              vertical: 8, horizontal: 8),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                vertical: 8,
+                                                horizontal: 8,
+                                              ),
                                           hintText: 'VD: 7*24',
                                           hintStyle: TextStyle(
                                             fontSize: 11,
-                                            color: AppColors.textHintOf(context),
+                                            color: AppColors.textHintOf(
+                                              context,
+                                            ),
                                           ),
                                         ),
                                         style: const TextStyle(fontSize: 13),
@@ -728,7 +821,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                             return 'Nhập SL';
                                           }
                                           final result =
-                                              ExpressionEvaluator.tryEvaluate(v);
+                                              ExpressionEvaluator.tryEvaluate(
+                                                v,
+                                              );
                                           if (result == null || result <= 0) {
                                             return 'SL > 0';
                                           }
@@ -753,7 +848,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                         'Thành tiền',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: AppColors.textSecondaryOf(context),
+                                          color: AppColors.textSecondaryOf(
+                                            context,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(height: 6),
@@ -789,9 +886,13 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Tổng số lượng',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500, fontSize: 14)),
+                              const Text(
+                                'Tổng số lượng',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
                               Text(
                                 '$_totalQuantity SP',
                                 style: TextStyle(
@@ -808,9 +909,13 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('TỔNG CỘNG',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold, fontSize: 16)),
+                              const Text(
+                                'TỔNG CỘNG',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                               Text(
                                 CurrencyFormatter.format(_totalValue),
                                 style: TextStyle(
@@ -854,16 +959,22 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            : Icon(widget.isExport
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward),
-                        label: Text(widget.isEditing
-                            ? 'Cập nhật phiếu'
-                            : (widget.isExport
-                                ? 'Xác nhận xuất kho'
-                                : 'Xác nhận nhập kho')),
+                            : Icon(
+                                widget.isExport
+                                    ? Icons.arrow_upward
+                                    : Icons.arrow_downward,
+                              ),
+                        label: Text(
+                          widget.isEditing
+                              ? 'Cập nhật phiếu'
+                              : (widget.isExport
+                                    ? 'Xác nhận xuất kho'
+                                    : 'Xác nhận nhập kho'),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: color,
                           foregroundColor: Colors.white,
@@ -891,9 +1002,16 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
         // Customer type toggle
         Row(
           children: [
-            Icon(Icons.person_outline, size: 20, color: AppColors.textSecondaryOf(context)),
+            Icon(
+              Icons.person_outline,
+              size: 20,
+              color: AppColors.textSecondaryOf(context),
+            ),
             const SizedBox(width: 8),
-            const Text('Khách hàng', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text(
+              'Khách hàng',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -944,9 +1062,12 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
 
   /// Build debt toggle + paid amount section
   Widget _buildDebtSection() {
-    final debtAmount = _totalValue - (double.tryParse(
-      _paidAmountCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
-    ) ?? 0);
+    final debtAmount =
+        _totalValue -
+        (double.tryParse(
+              _paidAmountCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
+            ) ??
+            0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1006,11 +1127,16 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 18, color: AppColors.debtActive),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: AppColors.debtActive,
+                      ),
                       SizedBox(width: 8),
-                      Text('Số tiền ghi nợ',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
+                      Text(
+                        'Số tiền ghi nợ',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
                     ],
                   ),
                   Text(
@@ -1046,8 +1172,11 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline,
-                          size: 18, color: AppColors.textSecondaryOf(context)),
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: AppColors.textSecondaryOf(context),
+                      ),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
@@ -1070,7 +1199,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 prefixIcon: Icon(Icons.person),
               ),
               items: allCustomers.map((c) {
-                final label = '${c.name}${c.phone != null ? ' (${c.phone})' : ''}';
+                final label =
+                    '${c.name}${c.phone != null ? ' (${c.phone})' : ''}';
                 return DropdownMenuItem(
                   value: c,
                   child: Text(
@@ -1102,6 +1232,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 760),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1113,10 +1244,10 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
           return BlocBuilder<CategoryBloc, CategoryState>(
             builder: (context, state) {
               return state.map(
-                initial: (_) => const Center(
-                    child: CircularProgressIndicator.adaptive()),
-                loading: (_) => const Center(
-                    child: CircularProgressIndicator.adaptive()),
+                initial: (_) =>
+                    const Center(child: CircularProgressIndicator.adaptive()),
+                loading: (_) =>
+                    const Center(child: CircularProgressIndicator.adaptive()),
                 loaded: (loaded) {
                   final products = loaded.products;
 
@@ -1132,21 +1263,25 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text('Chọn sản phẩm',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text(
+                        'Chọn sản phẩm',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Expanded(
                         child: products.isEmpty
-                            ? const Center(
-                                child: Text('Chưa có sản phẩm nào'))
+                            ? const Center(child: Text('Chưa có sản phẩm nào'))
                             : ListView.builder(
                                 controller: scrollController,
                                 itemCount: products.length,
                                 itemBuilder: (context, index) {
                                   final product = products[index];
                                   final alreadyAdded = _items.any(
-                                      (e) => e.product.id == product.id);
+                                    (e) => e.product.id == product.id,
+                                  );
                                   final price = widget.isExport
                                       ? product.exportPrice
                                       : product.importPrice;
@@ -1157,10 +1292,11 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       '${widget.isExport && _stocksLoaded ? ' • Tồn: ${_getAvailableStock(product.id)}' : ''}',
                                     ),
                                     trailing: alreadyAdded
-                                        ? const Icon(Icons.check,
-                                            color: AppColors.success)
-                                        : const Icon(
-                                            Icons.add_circle_outline),
+                                        ? const Icon(
+                                            Icons.check,
+                                            color: AppColors.success,
+                                          )
+                                        : const Icon(Icons.add_circle_outline),
                                     onTap: alreadyAdded
                                         ? null
                                         : () {
@@ -1174,8 +1310,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                     ],
                   );
                 },
-                actionSuccess: (_) => const Center(
-                    child: CircularProgressIndicator.adaptive()),
+                actionSuccess: (_) =>
+                    const Center(child: CircularProgressIndicator.adaptive()),
                 paginatedLoaded: (loaded) {
                   final products = loaded.products;
 
@@ -1191,21 +1327,25 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text('Chọn sản phẩm',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text(
+                        'Chọn sản phẩm',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Expanded(
                         child: products.isEmpty
-                            ? const Center(
-                                child: Text('Chưa có sản phẩm nào'))
+                            ? const Center(child: Text('Chưa có sản phẩm nào'))
                             : ListView.builder(
                                 controller: scrollController,
                                 itemCount: products.length,
                                 itemBuilder: (context, index) {
                                   final product = products[index];
                                   final alreadyAdded = _items.any(
-                                      (e) => e.product.id == product.id);
+                                    (e) => e.product.id == product.id,
+                                  );
                                   final price = widget.isExport
                                       ? product.exportPrice
                                       : product.importPrice;
@@ -1216,10 +1356,11 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                                       '${widget.isExport && _stocksLoaded ? ' • Tồn: ${_getAvailableStock(product.id)}' : ''}',
                                     ),
                                     trailing: alreadyAdded
-                                        ? const Icon(Icons.check,
-                                            color: AppColors.success)
-                                        : const Icon(
-                                            Icons.add_circle_outline),
+                                        ? const Icon(
+                                            Icons.check,
+                                            color: AppColors.success,
+                                          )
+                                        : const Icon(Icons.add_circle_outline),
                                     onTap: alreadyAdded
                                         ? null
                                         : () {
@@ -1234,8 +1375,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                   );
                 },
                 error: (e) => Center(child: Text(e.message)),
-                priceHistoryLoaded: (_) => const Center(
-                    child: CircularProgressIndicator.adaptive()),
+                priceHistoryLoaded: (_) =>
+                    const Center(child: CircularProgressIndicator.adaptive()),
               );
             },
           );

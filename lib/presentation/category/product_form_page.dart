@@ -31,10 +31,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
     super.initState();
     final p = widget.product;
     _nameCtl = TextEditingController(text: p?.name ?? '');
-    _importPriceCtl =
-        TextEditingController(text: p != null ? p.importPrice.toInt().toString() : '');
-    _exportPriceCtl =
-        TextEditingController(text: p != null ? p.exportPrice.toInt().toString() : '');
+    _importPriceCtl = TextEditingController(
+      text: p != null ? p.importPrice.toInt().toString() : '',
+    );
+    _exportPriceCtl = TextEditingController(
+      text: p != null ? p.exportPrice.toInt().toString() : '',
+    );
     _unitCtl = TextEditingController(text: p?.unit ?? 'Hộp');
   }
 
@@ -54,19 +56,19 @@ class _ProductFormPageState extends State<ProductFormPage> {
     // Get current user email for updatedBy
     String? userEmail;
     final authState = context.read<AuthBloc>().state;
-    authState.mapOrNull(
-      authenticated: (auth) => userEmail = auth.user.email,
-    );
+    authState.mapOrNull(authenticated: (auth) => userEmail = auth.user.email);
 
     final product = Product(
       id: widget.product?.id ?? '',
       name: _nameCtl.text.trim(),
       unit: _unitCtl.text.trim(),
-      importPrice: double.tryParse(
+      importPrice:
+          double.tryParse(
             _importPriceCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
           ) ??
           0,
-      exportPrice: double.tryParse(
+      exportPrice:
+          double.tryParse(
             _exportPriceCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
           ) ??
           0,
@@ -87,12 +89,17 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = width > 760 ? (width - 720) / 2 : 20.0;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isEditMode ? 'Sửa sản phẩm' : 'Thêm sản phẩm'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: 24,
+        ),
         child: Form(
           key: _formKey,
           child: Column(
@@ -154,7 +161,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
                 child: ElevatedButton.icon(
                   onPressed: _submit,
                   icon: Icon(widget.isEditMode ? Icons.save : Icons.add),
-                  label: Text(widget.isEditMode ? 'Lưu thay đổi' : 'Thêm sản phẩm'),
+                  label: Text(
+                    widget.isEditMode ? 'Lưu thay đổi' : 'Thêm sản phẩm',
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,

@@ -62,10 +62,14 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
             .where((p) => p.id == comp.productId)
             .firstOrNull;
         if (product != null) {
-          _components.add(_ComponentEntry(
-            product: product,
-            quantityCtl: TextEditingController(text: comp.quantity.toString()),
-          ));
+          _components.add(
+            _ComponentEntry(
+              product: product,
+              quantityCtl: TextEditingController(
+                text: comp.quantity.toString(),
+              ),
+            ),
+          );
         }
       }
     }
@@ -82,9 +86,8 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
   }
 
   double get _calculatedPrice {
-    double total = double.tryParse(
-          _laborCostCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
-        ) ??
+    double total =
+        double.tryParse(_laborCostCtl.text.replaceAll(RegExp(r'[^\d]'), '')) ??
         0;
     for (final comp in _components) {
       final qty = int.tryParse(comp.quantityCtl.text) ?? 0;
@@ -103,9 +106,9 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
         listener: (context, state) {
           state.mapOrNull(
             actionSuccess: (s) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(s.message)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(s.message)));
               Navigator.pop(context);
             },
             error: (s) {
@@ -121,7 +124,12 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.sizeOf(context).width > 800
+                  ? (MediaQuery.sizeOf(context).width - 760) / 2
+                  : 16,
+              vertical: 20,
+            ),
             children: [
               // Section 1: Chọn sản phẩm ghép
               _buildSectionHeader('Sản phẩm ghép', Icons.inventory_2_outlined),
@@ -215,7 +223,9 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
     // Filter out products that are already used as components
     final componentIds = _components.map((c) => c.product.id).toSet();
     final availableProducts = _allProducts
-        .where((p) => !componentIds.contains(p.id) || p.id == _selectedProduct?.id)
+        .where(
+          (p) => !componentIds.contains(p.id) || p.id == _selectedProduct?.id,
+        )
         .toList();
 
     return DropdownButtonFormField<Product>(
@@ -297,8 +307,10 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
                   textAlign: TextAlign.center,
                   decoration: const InputDecoration(
                     isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 8,
+                    ),
                     hintText: 'SL',
                   ),
                   validator: (v) {
@@ -333,12 +345,8 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
       label: const Text('Thêm nguyên liệu'),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
-        side: BorderSide(
-          color: AppColors.primary.withValues(alpha: 0.5),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );
@@ -355,16 +363,17 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
           ],
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.success.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
           const Row(
             children: [
-              Icon(Icons.calculate_outlined,
-                  size: 20, color: AppColors.success),
+              Icon(
+                Icons.calculate_outlined,
+                size: 20,
+                color: AppColors.success,
+              ),
               SizedBox(width: 8),
               Text(
                 'GIÁ TỰ TÍNH',
@@ -421,6 +430,7 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
 
     showModalBottomSheet(
       context: context,
+      constraints: const BoxConstraints(maxWidth: 760),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -455,10 +465,12 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
                   trailing: const Icon(Icons.add_circle_outline),
                   onTap: () {
                     setState(() {
-                      _components.add(_ComponentEntry(
-                        product: product,
-                        quantityCtl: TextEditingController(text: '1'),
-                      ));
+                      _components.add(
+                        _ComponentEntry(
+                          product: product,
+                          quantityCtl: TextEditingController(text: '1'),
+                        ),
+                      );
                     });
                     Navigator.pop(ctx);
                   },
@@ -482,9 +494,8 @@ class _FormulaFormPageState extends State<FormulaFormPage> {
       return;
     }
 
-    final laborCost = double.tryParse(
-          _laborCostCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
-        ) ??
+    final laborCost =
+        double.tryParse(_laborCostCtl.text.replaceAll(RegExp(r'[^\d]'), '')) ??
         0;
 
     final formula = ProductFormula(

@@ -1,7 +1,15 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+
+/// Shared messenger used for in-app reminders on Web, where OS scheduling is
+/// unavailable and browser permission prompts must be tied to a user gesture.
+final GlobalKey<ScaffoldMessengerState> notificationMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 /// Service for managing daily report reminder notifications
 class NotificationService {
@@ -11,6 +19,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+  Timer? _webReminderTimer;
 
   static const int _dailyReportNotificationId = 1001;
   static const String _channelId = 'daily_report_reminder';
@@ -20,12 +29,15 @@ class NotificationService {
 
   /// Initialize notification plugin and timezone data
   Future<void> init() async {
+    if (kIsWeb) return;
+
     // Initialize timezone database (required for zonedSchedule)
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -44,7 +56,8 @@ class NotificationService {
     // Create Android notification channel
     await _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(
           const AndroidNotificationChannel(
             _channelId,
@@ -57,15 +70,22 @@ class NotificationService {
 
   /// Request notification permission (iOS / Android 13+)
   Future<bool> requestPermission() async {
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    // Web reminders are shown in-app and don't request browser permissions.
+    if (kIsWeb) return true;
+
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android != null) {
       final granted = await android.requestNotificationsPermission();
       return granted ?? false;
     }
 
-    final ios = _plugin.resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin>();
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (ios != null) {
       final granted = await ios.requestPermissions(
         alert: true,
@@ -83,10 +103,12 @@ class NotificationService {
   /// Uses [zonedSchedule] with [DateTimeComponents.time] so the OS
   /// delivers the notification every day at the given hour:minute,
   /// even when the app is suspended or terminated — critical for iOS.
-  Future<void> scheduleDailyReminder({
-    int hour = 20,
-    int minute = 0,
-  }) async {
+  Future<void> scheduleDailyReminder({int hour = 20, int minute = 0}) async {
+    if (kIsWeb) {
+      _scheduleWebReminder(hour: hour, minute: minute);
+      return;
+    }
+
     // Cancel any existing reminder first
     await cancelDailyReminder();
 
@@ -177,12 +199,45 @@ class NotificationService {
 
   /// Cancel daily reminder
   Future<void> cancelDailyReminder() async {
+    if (kIsWeb) {
+      _webReminderTimer?.cancel();
+      _webReminderTimer = null;
+      return;
+    }
     await _plugin.cancel(id: _dailyReportNotificationId);
   }
 
   /// Show a test notification (for debugging)
   Future<void> showTestNotification() async {
+    if (kIsWeb) {
+      _showWebReminder();
+      return;
+    }
     await _showReminderNotification();
+  }
+
+  void _scheduleWebReminder({required int hour, required int minute}) {
+    _webReminderTimer?.cancel();
+    final now = DateTime.now();
+    var next = DateTime(now.year, now.month, now.day, hour, minute);
+    if (!next.isAfter(now)) next = next.add(const Duration(days: 1));
+
+    _webReminderTimer = Timer(next.difference(now), () {
+      _showWebReminder();
+      _scheduleWebReminder(hour: hour, minute: minute);
+    });
+  }
+
+  void _showWebReminder() {
+    notificationMessengerKey.currentState?.showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Đến giờ tổng kết giao dịch trong ngày. Mở báo cáo để kiểm tra.',
+        ),
+        duration: Duration(seconds: 12),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _onNotificationTapped(NotificationResponse response) {

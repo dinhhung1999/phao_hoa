@@ -37,88 +37,123 @@ class _FormulaListPageState extends State<FormulaListPage> {
   }
 
   void _buildPriceMap(List<Product> products) {
-    _priceMap = {
-      for (final p in products) p.id: p.exportPrice,
-    };
+    _priceMap = {for (final p in products) p.id: p.exportPrice};
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1100;
     return Scaffold(
-      body: MultiBlocListener(
-        listeners: [
-          BlocListener<FormulaBloc, FormulaState>(
-            listener: (context, state) {
-              state.mapOrNull(
-                actionSuccess: (s) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(s.message)),
-                  );
-                },
-                error: (s) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(s.message),
-                      backgroundColor: AppColors.error,
+      body: Column(
+        children: [
+          if (isDesktop)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Công thức',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: () => _navigateToForm(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Thêm công thức'),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: MultiBlocListener(
+              listeners: [
+                BlocListener<FormulaBloc, FormulaState>(
+                  listener: (context, state) {
+                    state.mapOrNull(
+                      actionSuccess: (s) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(s.message)));
+                      },
+                      error: (s) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(s.message),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                BlocListener<CategoryBloc, CategoryState>(
+                  listener: (context, state) {
+                    state.mapOrNull(
+                      loaded: (s) {
+                        setState(() => _buildPriceMap(s.products));
+                      },
+                      paginatedLoaded: (s) {
+                        setState(() => _buildPriceMap(s.products));
+                      },
+                    );
+                  },
+                ),
+              ],
+              child: BlocBuilder<FormulaBloc, FormulaState>(
+                builder: (context, state) {
+                  return state.map(
+                    initial: (_) => const Center(
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
+                    loading: (_) => const Center(
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
+                    loaded: (loaded) => _buildFormulaList(loaded.formulas),
+                    actionSuccess: (_) => const Center(
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
+                    error: (e) => Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            e.message,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () => context.read<FormulaBloc>().add(
+                              const FormulaEvent.loadFormulas(),
+                            ),
+                            child: const Text('Thử lại'),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
-              );
-            },
-          ),
-          BlocListener<CategoryBloc, CategoryState>(
-            listener: (context, state) {
-              state.mapOrNull(
-                loaded: (s) {
-                  setState(() => _buildPriceMap(s.products));
-                },
-                paginatedLoaded: (s) {
-                  setState(() => _buildPriceMap(s.products));
-                },
-              );
-            },
+              ),
+            ),
           ),
         ],
-        child: BlocBuilder<FormulaBloc, FormulaState>(
-          builder: (context, state) {
-            return state.map(
-              initial: (_) => const Center(
-                  child: CircularProgressIndicator.adaptive()),
-              loading: (_) => const Center(
-                  child: CircularProgressIndicator.adaptive()),
-              loaded: (loaded) => _buildFormulaList(loaded.formulas),
-              actionSuccess: (_) => const Center(
-                  child: CircularProgressIndicator.adaptive()),
-              error: (e) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: AppColors.error),
-                    const SizedBox(height: 12),
-                    Text(e.message,
-                        style: const TextStyle(color: AppColors.error)),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () => context
-                          .read<FormulaBloc>()
-                          .add(const FormulaEvent.loadFormulas()),
-                      child: const Text('Thử lại'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Thêm công thức'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      floatingActionButton: isDesktop
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _navigateToForm(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Thêm công thức'),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
     );
   }
 
@@ -128,8 +163,11 @@ class _FormulaListPageState extends State<FormulaListPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.science_outlined,
-                size: 64, color: AppColors.textSecondaryOf(context)),
+            Icon(
+              Icons.science_outlined,
+              size: 64,
+              color: AppColors.textSecondaryOf(context),
+            ),
             const SizedBox(height: 16),
             Text(
               'Chưa có công thức ghép nào',
@@ -155,16 +193,28 @@ class _FormulaListPageState extends State<FormulaListPage> {
       onRefresh: () async {
         context.read<FormulaBloc>().add(const FormulaEvent.loadFormulas());
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-        itemCount: formulas.length,
-        itemBuilder: (context, index) {
-          final formula = formulas[index];
-          return _FormulaCard(
-            formula: formula,
-            priceMap: _priceMap,
-            onEdit: () => _navigateToForm(context, formula: formula),
-            onDelete: () => _confirmDelete(context, formula),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = constraints.maxWidth > 1050
+              ? (constraints.maxWidth - 1000) / 2
+              : 16.0;
+          return ListView.builder(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              12,
+              horizontalPadding,
+              80,
+            ),
+            itemCount: formulas.length,
+            itemBuilder: (context, index) {
+              final formula = formulas[index];
+              return _FormulaCard(
+                formula: formula,
+                priceMap: _priceMap,
+                onEdit: () => _navigateToForm(context, formula: formula),
+                onDelete: () => _confirmDelete(context, formula),
+              );
+            },
           );
         },
       ),
@@ -187,7 +237,9 @@ class _FormulaListPageState extends State<FormulaListPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Xoá công thức'),
-        content: Text('Bạn có chắc muốn xoá công thức "${formula.productName}"?'),
+        content: Text(
+          'Bạn có chắc muốn xoá công thức "${formula.productName}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -196,9 +248,9 @@ class _FormulaListPageState extends State<FormulaListPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context
-                  .read<FormulaBloc>()
-                  .add(FormulaEvent.deleteFormula(formula.id));
+              context.read<FormulaBloc>().add(
+                FormulaEvent.deleteFormula(formula.id),
+              );
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Xoá'),
@@ -305,11 +357,16 @@ class _FormulaCard extends StatelessWidget {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline,
-                                size: 18, color: AppColors.error),
+                            Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
                             SizedBox(width: 8),
-                            Text('Xoá',
-                                style: TextStyle(color: AppColors.error)),
+                            Text(
+                              'Xoá',
+                              style: TextStyle(color: AppColors.error),
+                            ),
                           ],
                         ),
                       ),
@@ -339,16 +396,19 @@ class _FormulaCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    ...formula.components
-                        .where((c) => c.quantity > 0)
-                        .map((comp) {
+                    ...formula.components.where((c) => c.quantity > 0).map((
+                      comp,
+                    ) {
                       final compPrice = priceMap[comp.productId];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           children: [
-                            const Icon(Icons.circle, size: 6,
-                                color: AppColors.primary),
+                            const Icon(
+                              Icons.circle,
+                              size: 6,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -359,7 +419,8 @@ class _FormulaCard extends StatelessWidget {
                             if (hasPrice && compPrice != null)
                               Text(
                                 CurrencyFormatter.format(
-                                    comp.quantity * compPrice),
+                                  comp.quantity * compPrice,
+                                ),
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textSecondaryOf(context),
@@ -374,12 +435,17 @@ class _FormulaCard extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           children: [
-                            const Icon(Icons.circle, size: 6,
-                                color: AppColors.warning),
+                            const Icon(
+                              Icons.circle,
+                              size: 6,
+                              color: AppColors.warning,
+                            ),
                             const SizedBox(width: 8),
                             const Expanded(
-                              child: Text('Tiền công ghép',
-                                  style: TextStyle(fontSize: 13)),
+                              child: Text(
+                                'Tiền công ghép',
+                                style: TextStyle(fontSize: 13),
+                              ),
                             ),
                             Text(
                               CurrencyFormatter.format(formula.laborCost),
@@ -399,8 +465,10 @@ class _FormulaCard extends StatelessWidget {
               if (hasPrice) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.success.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
@@ -413,12 +481,19 @@ class _FormulaCard extends StatelessWidget {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.calculate_outlined,
-                              size: 18, color: AppColors.success),
+                          Icon(
+                            Icons.calculate_outlined,
+                            size: 18,
+                            color: AppColors.success,
+                          ),
                           SizedBox(width: 8),
-                          Text('Giá tự tính',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w500, fontSize: 14)),
+                          Text(
+                            'Giá tự tính',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
                         ],
                       ),
                       Text(

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/data_reset_service.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/web_push_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/confirm_dialog.dart';
-import '../../injection_container.dart';
 import '../auth/auth_bloc.dart';
-import '../warehouse/warehouse_bloc.dart';
-import '../warehouse/warehouse_list_page.dart';
 
 /// Settings page — accessed from home page app bar
 class SettingsPage extends StatefulWidget {
@@ -23,11 +23,15 @@ class _SettingsPageState extends State<SettingsPage> {
   int _reminderMinute = 0;
   bool _reminderEnabled = true;
   bool _isResetting = false;
+  bool _webPushSupported = true;
+  bool _webPushEnabled = false;
+  bool _webPushBusy = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    if (kIsWeb) _loadWebPushStatus();
   }
 
   static const _prefKeyHour = 'reminder_hour';
@@ -46,6 +50,60 @@ class _SettingsPageState extends State<SettingsPage> {
       _reminderMinute = prefs.getInt(_prefKeyMinute) ?? 0;
       _reminderEnabled = prefs.getBool(_prefKeyEnabled) ?? true;
     });
+  }
+
+  Future<void> _loadWebPushStatus() async {
+    final service = WebPushService();
+    var supported = false;
+    try {
+      supported = await service.isSupported();
+      if (supported && service.isConfigured) {
+        await service.restoreIfAllowed();
+      }
+    } catch (error) {
+      debugPrint('Could not check Web Push support: $error');
+    }
+    if (!mounted) return;
+    setState(() {
+      _webPushSupported = supported;
+      _webPushEnabled = service.isRegistered;
+    });
+  }
+
+  Future<void> _toggleWebPush(bool enabled) async {
+    setState(() => _webPushBusy = true);
+    try {
+      if (enabled) {
+        await WebPushService().enable();
+      } else {
+        await WebPushService().disable();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$error'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _webPushEnabled = WebPushService().isRegistered;
+          _webPushBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _sendWebPushTest() async {
+    try {
+      await WebPushService().sendTest();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$error'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -73,8 +131,6 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     }
   }
-
-
 
   Future<void> _pickTime() async {
     final time = await showTimePicker(
@@ -111,7 +167,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-
   Future<void> _handleSelectiveReset() async {
     final selectedTypes = await showDialog<Set<DataResetType>>(
       context: context,
@@ -144,10 +199,23 @@ class _SettingsPageState extends State<SettingsPage> {
       final service = DataResetService();
       final results = await service.resetSelectiveData(selectedTypes);
       final totalDeleted = results.values.fold(0, (a, b) => a + b);
+      var pushSent = true;
+      if (totalDeleted > 0) {
+        try {
+          await WebPushService().notifyDataReset(results);
+        } catch (error) {
+          pushSent = false;
+          debugPrint('Could not send data reset notification: $error');
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã xoá $totalDeleted bản ghi thành công.'),
+            content: Text(
+              pushSent
+                  ? 'Đã xoá $totalDeleted bản ghi thành công.'
+                  : 'Đã xoá $totalDeleted bản ghi; không gửi được Web Push.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -225,9 +293,7 @@ class _SettingsPageState extends State<SettingsPage> {
         '${_reminderHour.toString().padLeft(2, '0')}:${_reminderMinute.toString().padLeft(2, '0')}';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cài đặt'),
-      ),
+      appBar: AppBar(title: const Text('Cài đặt')),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
@@ -235,10 +301,12 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.all(16),
           children: [
             // ── Account Section ──
-            Text('Tài khoản',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
+            Text(
+              'Tài khoản',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             BlocBuilder<AuthBloc, AuthState>(
               builder: (context, state) {
@@ -257,8 +325,9 @@ class _SettingsPageState extends State<SettingsPage> {
                               children: [
                                 CircleAvatar(
                                   radius: 28,
-                                  backgroundColor:
-                                      AppColors.primary.withValues(alpha: 0.15),
+                                  backgroundColor: AppColors.primary.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   child: Text(
                                     initial,
                                     style: const TextStyle(
@@ -299,17 +368,23 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.success
-                                        .withValues(alpha: 0.12),
+                                    color: AppColors.success.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.check_circle,
-                                          size: 12, color: AppColors.success),
+                                      Icon(
+                                        Icons.check_circle,
+                                        size: 12,
+                                        color: AppColors.success,
+                                      ),
                                       SizedBox(width: 4),
                                       Text(
                                         'Online',
@@ -327,10 +402,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           const Divider(height: 1),
                           ListTile(
-                            leading: const Icon(Icons.logout,
-                                color: AppColors.error),
-                            title: const Text('Đăng xuất',
-                                style: TextStyle(color: AppColors.error)),
+                            leading: const Icon(
+                              Icons.logout,
+                              color: AppColors.error,
+                            ),
+                            title: const Text(
+                              'Đăng xuất',
+                              style: TextStyle(color: AppColors.error),
+                            ),
                             onTap: _handleLogout,
                           ),
                         ],
@@ -350,10 +429,12 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24),
 
             // ── Warehouse Management Section ──
-            Text('Kho hàng',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
+            Text(
+              'Kho hàng',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Card(
               child: ListTile(
@@ -364,34 +445,29 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(fontSize: 12),
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider(
-                        create: (_) => sl<WarehouseBloc>(),
-                        child: const WarehouseListPage(),
-                      ),
-                    ),
-                  );
-                },
+                onTap: () => context.push('/warehouses'),
               ),
             ),
 
             const SizedBox(height: 24),
 
             // ── Notification section ──
-            Text('git Thông báo',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
+            Text(
+              'Thông báo',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Card(
               child: Column(
                 children: [
                   SwitchListTile(
                     title: const Text('Nhắc nhở báo cáo hàng ngày'),
-                    subtitle: const Text(
-                      'Nhận thông báo nhắc nhở tổng kết giao dịch cuối ngày',
+                    subtitle: Text(
+                      kIsWeb
+                          ? 'Hiện nhắc trong ứng dụng khi trang đang mở; đóng trình duyệt sẽ tạm dừng nhắc.'
+                          : 'Nhận thông báo nhắc nhở tổng kết giao dịch cuối ngày',
                     ),
                     value: _reminderEnabled,
                     onChanged: (v) async {
@@ -408,11 +484,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: Text('Nhắc nhở lúc $timeStr mỗi ngày'),
                       trailing: FilledButton.tonal(
                         onPressed: _pickTime,
-                        child: Text(timeStr,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            )),
+                        child: Text(
+                          timeStr,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -426,22 +504,67 @@ class _SettingsPageState extends State<SettingsPage> {
                   await NotificationService().showTestNotification();
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Đã gửi thông báo thử'),
-                    ),
+                    const SnackBar(content: Text('Đã gửi thông báo thử')),
                   );
                 },
                 icon: const Icon(Icons.send_outlined, size: 18),
                 label: const Text('Gửi thông báo thử'),
               ),
 
+            if (kIsWeb) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Web Push',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      secondary: const Icon(
+                        Icons.notifications_active_outlined,
+                      ),
+                      title: const Text('Thông báo thay đổi dữ liệu'),
+                      subtitle: Text(
+                        !WebPushService().isConfigured
+                            ? 'Cần cấu hình VAPID public key khi build Web.'
+                            : !_webPushSupported
+                            ? 'Trình duyệt này không hỗ trợ Web Push.'
+                            : 'Nhận thông báo nhập, xuất, kiểm kho, sửa và xóa dữ liệu, kể cả khi đóng tab.',
+                      ),
+                      value: _webPushEnabled,
+                      onChanged:
+                          _webPushBusy ||
+                              !_webPushSupported ||
+                              !WebPushService().isConfigured
+                          ? null
+                          : _toggleWebPush,
+                    ),
+                    if (_webPushEnabled) ...[
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.send_outlined),
+                        title: const Text('Gửi thử Web Push'),
+                        onTap: _sendWebPushTest,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 32),
 
             // ── Data Management section ──
-            Text('Dữ liệu',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
+            Text(
+              'Dữ liệu',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Card(
               child: Column(
@@ -475,10 +598,12 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 32),
 
             // ── App info ──
-            Text('Thông tin ứng dụng',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
+            Text(
+              'Thông tin ứng dụng',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Card(
               child: Column(
@@ -535,28 +660,30 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ...DataResetType.values.map((type) => CheckboxListTile(
-              value: _selected.contains(type),
-              onChanged: (v) {
-                setState(() {
-                  if (v == true) {
-                    _selected.add(type);
-                  } else {
-                    _selected.remove(type);
-                  }
-                });
-              },
-              title: Text(type.label),
-              secondary: Icon(
-                _icons[type] ?? Icons.data_object,
-                color: _selected.contains(type)
-                    ? AppColors.error
-                    : AppColors.textSecondary,
+            ...DataResetType.values.map(
+              (type) => CheckboxListTile(
+                value: _selected.contains(type),
+                onChanged: (v) {
+                  setState(() {
+                    if (v == true) {
+                      _selected.add(type);
+                    } else {
+                      _selected.remove(type);
+                    }
+                  });
+                },
+                title: Text(type.label),
+                secondary: Icon(
+                  _icons[type] ?? Icons.data_object,
+                  color: _selected.contains(type)
+                      ? AppColors.error
+                      : AppColors.textSecondary,
+                ),
+                activeColor: AppColors.error,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.trailing,
               ),
-              activeColor: AppColors.error,
-              dense: true,
-              controlAffinity: ListTileControlAffinity.trailing,
-            )),
+            ),
             if (warnings.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
@@ -571,8 +698,11 @@ class _SelectiveResetDialogState extends State<_SelectiveResetDialog> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        size: 18, color: AppColors.warning),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      size: 18,
+                      color: AppColors.warning,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(

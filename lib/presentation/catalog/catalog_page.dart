@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../category/category_page.dart';
 import '../customer/customer_list_page.dart';
@@ -6,19 +8,37 @@ import '../formula/formula_list_page.dart';
 
 /// Combined "Danh mục" tab with sub-tabs: Sản phẩm, Khách hàng & Công thức
 class CatalogPage extends StatelessWidget {
-  const CatalogPage({super.key});
+  final int initialTabIndex;
+
+  const CatalogPage({super.key, this.initialTabIndex = 0});
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
+      initialIndex: initialTabIndex,
       child: Column(
         children: [
           Material(
-            color: Theme.of(context).appBarTheme.backgroundColor ??
+            color:
+                Theme.of(context).appBarTheme.backgroundColor ??
                 Theme.of(context).colorScheme.surface,
             elevation: 0,
             child: TabBar(
+              isScrollable: kIsWeb,
+              tabAlignment: kIsWeb ? TabAlignment.start : null,
+              padding: kIsWeb
+                  ? const EdgeInsets.symmetric(horizontal: 16)
+                  : EdgeInsets.zero,
+              onTap: (index) {
+                if (!kIsWeb) return;
+                const paths = [
+                  '/catalog/products',
+                  '/catalog/customers',
+                  '/catalog/formulas',
+                ];
+                context.go(paths[index]);
+              },
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.textSecondary,
               indicatorColor: AppColors.primary,
@@ -48,6 +68,7 @@ class CatalogPage extends StatelessWidget {
           ),
           const Expanded(
             child: TabBarView(
+              physics: kIsWeb ? NeverScrollableScrollPhysics() : null,
               children: [
                 CategoryPage(showAppBar: false),
                 CustomerListPage(showAppBar: false),

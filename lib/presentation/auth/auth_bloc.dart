@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../core/services/web_push_service.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/usecases/auth/auth_usecases.dart';
 
@@ -22,11 +23,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required RegisterWithEmail registerWithEmail,
     required SignOut signOut,
     required GetAuthStateChanges getAuthStateChanges,
-  })  : _signInWithEmail = signInWithEmail,
-        _registerWithEmail = registerWithEmail,
-        _signOut = signOut,
-        _getAuthStateChanges = getAuthStateChanges,
-        super(const AuthState.initial()) {
+  }) : _signInWithEmail = signInWithEmail,
+       _registerWithEmail = registerWithEmail,
+       _signOut = signOut,
+       _getAuthStateChanges = getAuthStateChanges,
+       super(const AuthState.initial()) {
     on<_CheckAuthStatus>(_onCheckAuthStatus);
     on<_AuthStateChanged>(_onAuthStateChanged);
     on<_SignIn>(_onSignIn);
@@ -34,20 +35,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<_SignOut>(_onSignOut);
   }
 
-  void _onCheckAuthStatus(
-    _CheckAuthStatus event,
-    Emitter<AuthState> emit,
-  ) {
+  void _onCheckAuthStatus(_CheckAuthStatus event, Emitter<AuthState> emit) {
     _authSubscription?.cancel();
     _authSubscription = _getAuthStateChanges().listen((user) {
       add(AuthEvent.authStateChanged(user: user));
     });
   }
 
-  void _onAuthStateChanged(
-    _AuthStateChanged event,
-    Emitter<AuthState> emit,
-  ) {
+  void _onAuthStateChanged(_AuthStateChanged event, Emitter<AuthState> emit) {
     if (event.user != null) {
       emit(AuthState.authenticated(event.user!));
     } else {
@@ -80,10 +75,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  Future<void> _onSignOut(
-    _SignOut event,
-    Emitter<AuthState> emit,
-  ) async {
+  Future<void> _onSignOut(_SignOut event, Emitter<AuthState> emit) async {
+    await WebPushService().disableOnSignOut();
     await _signOut();
     emit(const AuthState.unauthenticated());
   }

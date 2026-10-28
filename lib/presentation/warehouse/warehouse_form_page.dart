@@ -32,9 +32,11 @@ class _WarehouseFormPageState extends State<WarehouseFormPage> {
     _nameCtl = TextEditingController(text: w?.name ?? '');
     _addressCtl = TextEditingController(text: w?.address ?? '');
     _areaCtl = TextEditingController(
-        text: w?.area != null ? w!.area!.toStringAsFixed(0) : '');
+      text: w?.area != null ? w!.area!.toStringAsFixed(0) : '',
+    );
     _capacityCtl = TextEditingController(
-        text: w?.capacity != null ? w!.capacity.toString() : '');
+      text: w?.capacity != null ? w!.capacity.toString() : '',
+    );
     _notesCtl = TextEditingController(text: w?.notes ?? '');
   }
 
@@ -80,7 +82,12 @@ class _WarehouseFormPageState extends State<WarehouseFormPage> {
             );
           },
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.sizeOf(context).width > 760
+                  ? (MediaQuery.sizeOf(context).width - 720) / 2
+                  : 16,
+              vertical: 20,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -91,8 +98,11 @@ class _WarehouseFormPageState extends State<WarehouseFormPage> {
                     child: CircleAvatar(
                       radius: 36,
                       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                      child: const Icon(Icons.warehouse,
-                          size: 36, color: AppColors.primary),
+                      child: const Icon(
+                        Icons.warehouse,
+                        size: 36,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -213,9 +223,7 @@ class _WarehouseFormPageState extends State<WarehouseFormPage> {
 
     String? userEmail;
     final authState = context.read<AuthBloc>().state;
-    authState.mapOrNull(
-      authenticated: (auth) => userEmail = auth.user.email,
-    );
+    authState.mapOrNull(authenticated: (auth) => userEmail = auth.user.email);
 
     final now = DateTime.now();
     final area = _areaCtl.text.trim().isNotEmpty
@@ -228,8 +236,9 @@ class _WarehouseFormPageState extends State<WarehouseFormPage> {
     final warehouse = Warehouse(
       id: widget.warehouse?.id ?? '',
       name: _nameCtl.text.trim(),
-      address:
-          _addressCtl.text.trim().isNotEmpty ? _addressCtl.text.trim() : null,
+      address: _addressCtl.text.trim().isNotEmpty
+          ? _addressCtl.text.trim()
+          : null,
       area: area,
       capacity: capacity,
       notes: _notesCtl.text.trim().isNotEmpty ? _notesCtl.text.trim() : null,
@@ -240,13 +249,11 @@ class _WarehouseFormPageState extends State<WarehouseFormPage> {
     );
 
     if (_isEditing) {
-      context
-          .read<WarehouseBloc>()
-          .add(WarehouseEvent.updateWarehouse(warehouse));
+      context.read<WarehouseBloc>().add(
+        WarehouseEvent.updateWarehouse(warehouse),
+      );
     } else {
-      context
-          .read<WarehouseBloc>()
-          .add(WarehouseEvent.addWarehouse(warehouse));
+      context.read<WarehouseBloc>().add(WarehouseEvent.addWarehouse(warehouse));
     }
   }
 }

@@ -27,7 +27,9 @@ class _CategoryPageState extends State<CategoryPage> {
   void initState() {
     super.initState();
     // Trigger paginated load on first build
-    context.read<CategoryBloc>().add(const CategoryEvent.loadProductsPaginated());
+    context.read<CategoryBloc>().add(
+      const CategoryEvent.loadProductsPaginated(),
+    );
 
     // Listen to scroll for lazy loading
     _scrollCtl.addListener(_onScroll);
@@ -55,31 +57,31 @@ class _CategoryPageState extends State<CategoryPage> {
     return currentScroll >= (maxScroll - 200);
   }
 
+  Future<void> _addProduct() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<CategoryBloc>(),
+          child: const ProductFormPage(),
+        ),
+      ),
+    );
+    if (mounted) {
+      context.read<CategoryBloc>().add(const CategoryEvent.refreshProducts());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(title: const Text('Danh mục'))
-          : null,
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fab_category',
-        onPressed: () async {
-          await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<CategoryBloc>(),
-                child: const ProductFormPage(),
-              ),
+      appBar: widget.showAppBar ? AppBar(title: const Text('Danh mục')) : null,
+      floatingActionButton: MediaQuery.sizeOf(context).width >= 1100
+          ? null
+          : FloatingActionButton(
+              heroTag: 'fab_category',
+              onPressed: _addProduct,
+              child: const Icon(Icons.add),
             ),
-          );
-          if (context.mounted) {
-            context
-                .read<CategoryBloc>()
-                .add(const CategoryEvent.refreshProducts());
-          }
-        },
-        child: const Icon(Icons.add),
-      ),
       body: BlocConsumer<CategoryBloc, CategoryState>(
         listener: (context, state) {
           state.mapOrNull(
@@ -105,9 +107,9 @@ class _CategoryPageState extends State<CategoryPage> {
             priceHistoryLoaded: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
-              onRetry: () => context
-                  .read<CategoryBloc>()
-                  .add(const CategoryEvent.loadProductsPaginated()),
+              onRetry: () => context.read<CategoryBloc>().add(
+                const CategoryEvent.loadProductsPaginated(),
+              ),
             ),
           );
         },
@@ -116,7 +118,9 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Widget _buildPaginatedList(
-    List<Product> products, bool hasMore, bool isLoadingMore,
+    List<Product> products,
+    bool hasMore,
+    bool isLoadingMore,
   ) {
     final filtered = _searchQuery.isEmpty
         ? products
@@ -131,7 +135,31 @@ class _CategoryPageState extends State<CategoryPage> {
       },
       child: Column(
         children: [
-          // Search bar
+          if (MediaQuery.sizeOf(context).width >= 1100)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Row(
+                children: [
+                  Text(
+                    'Sản phẩm',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '${products.length} mục',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: _addProduct,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Thêm sản phẩm'),
+                  ),
+                ],
+              ),
+            ),
           _buildSearchBar(),
           Expanded(
             child: filtered.isEmpty
@@ -142,32 +170,65 @@ class _CategoryPageState extends State<CategoryPage> {
                       Center(
                         child: Column(
                           children: [
-                            Icon(Icons.inventory_2_outlined,
-                                size: 64, color: AppColors.textHintOf(context)),
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 64,
+                              color: AppColors.textHintOf(context),
+                            ),
                             SizedBox(height: 12),
-                            Text('Không tìm thấy sản phẩm',
-                                style: TextStyle(color: AppColors.textSecondaryOf(context))),
+                            Text(
+                              'Không tìm thấy sản phẩm',
+                              style: TextStyle(
+                                color: AppColors.textSecondaryOf(context),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ],
                   )
-                : ListView.separated(
-                    controller: _scrollCtl,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length + (hasMore ? 1 : 0),
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      if (index >= filtered.length) {
-                        // Loading more indicator
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          child: Center(
-                            child: CircularProgressIndicator.adaptive(),
-                          ),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      Widget itemBuilder(BuildContext context, int index) {
+                        if (index >= filtered.length) {
+                          return Center(
+                            child: isLoadingMore
+                                ? const CircularProgressIndicator.adaptive()
+                                : OutlinedButton.icon(
+                                    onPressed: () =>
+                                        context.read<CategoryBloc>().add(
+                                          const CategoryEvent.loadMoreProducts(),
+                                        ),
+                                    icon: const Icon(Icons.expand_more),
+                                    label: const Text('Tải thêm sản phẩm'),
+                                  ),
+                          );
+                        }
+                        return _buildProductCard(filtered[index]);
+                      }
+
+                      if (constraints.maxWidth >= 850) {
+                        return GridView.builder(
+                          controller: _scrollCtl,
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                          gridDelegate:
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 560,
+                                mainAxisExtent: 88,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                          itemCount: filtered.length + (hasMore ? 1 : 0),
+                          itemBuilder: itemBuilder,
                         );
                       }
-                      return _buildProductCard(filtered[index]);
+                      return ListView.separated(
+                        controller: _scrollCtl,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filtered.length + (hasMore ? 1 : 0),
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: itemBuilder,
+                      );
                     },
                   ),
           ),
@@ -183,29 +244,31 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Tìm sản phẩm...',
-          prefixIcon: const Icon(Icons.search, size: 20),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () => setState(() => _searchQuery = ''),
-                )
-              : null,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: TextField(
+          decoration: InputDecoration(
+            hintText: 'Tìm sản phẩm...',
+            prefixIcon: const Icon(Icons.search, size: 20),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () => setState(() => _searchQuery = ''),
+                  )
+                : null,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
           ),
-          filled: true,
-          fillColor: Theme.of(context)
-              .colorScheme
-              .surfaceContainerHighest
-              .withValues(alpha: 0.5),
+          onChanged: (v) => setState(() => _searchQuery = v),
         ),
-        onChanged: (v) => setState(() => _searchQuery = v),
       ),
     );
   }
@@ -236,18 +299,17 @@ class _CategoryPageState extends State<CategoryPage> {
           ],
         ),
         onTap: () async {
+          final categoryBloc = context.read<CategoryBloc>();
           await Navigator.of(context).push<bool>(
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
-                value: context.read<CategoryBloc>(),
+                value: categoryBloc,
                 child: ProductDetailPage(product: product),
               ),
             ),
           );
           if (context.mounted) {
-            context
-                .read<CategoryBloc>()
-                .add(const CategoryEvent.refreshProducts());
+            categoryBloc.add(const CategoryEvent.refreshProducts());
           }
         },
       ),

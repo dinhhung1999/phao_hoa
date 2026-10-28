@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'app.dart';
 import 'core/constants/app_constants.dart';
 import 'core/services/notification_service.dart';
@@ -12,11 +15,10 @@ import 'injection_container.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy();
 
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Enable Firestore offline persistence for better connectivity
   FirebaseFirestore.instance.settings = const Settings(
@@ -26,20 +28,6 @@ void main() async {
 
   // Initialize dependency injection
   await initDependencies();
-
-  // Initialize notifications & schedule daily reminder from saved settings
-  final notificationService = NotificationService();
-  await notificationService.init();
-  await notificationService.requestPermission();
-
-  final prefs = await SharedPreferences.getInstance();
-  final enabled = prefs.getBool('reminder_enabled') ?? true;
-  if (enabled) {
-    final hour = prefs.getInt('reminder_hour') ?? 20;
-    final minute = prefs.getInt('reminder_minute') ?? 0;
-    await notificationService.scheduleDailyReminder(
-        hour: hour, minute: minute);
-  }
 
   // Seed default warehouses if collection is empty (backward-compatible migration)
   try {
@@ -60,5 +48,26 @@ void main() async {
   }
 
   runApp(const PhaoHoaApp());
+  unawaited(_initializeNotifications());
 }
 
+/// Start reminder setup after the first frame so a notification plugin issue
+/// cannot prevent the app itself from opening.
+Future<void> _initializeNotifications() async {
+  try {
+    final notificationService = NotificationService();
+    await notificationService.init();
+    await notificationService.requestPermission();
+
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('reminder_enabled') ?? true) {
+      await notificationService.scheduleDailyReminder(
+        hour: prefs.getInt('reminder_hour') ?? 20,
+        minute: prefs.getInt('reminder_minute') ?? 0,
+      );
+    }
+  } catch (error, stackTrace) {
+    debugPrint('Could not initialize daily reminders: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+}

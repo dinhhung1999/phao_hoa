@@ -47,7 +47,9 @@ class _JournalPageState extends State<JournalPage> {
 
   void _onScroll() {
     if (_isBottom) {
-      context.read<TransactionBloc>().add(const TransactionEvent.loadMoreHistory());
+      context.read<TransactionBloc>().add(
+        const TransactionEvent.loadMoreHistory(),
+      );
     }
   }
 
@@ -59,12 +61,14 @@ class _JournalPageState extends State<JournalPage> {
   }
 
   void _applyFilters() {
-    context.read<TransactionBloc>().add(TransactionEvent.loadHistoryPaginated(
-          startDate: _filterDateRange?.start,
-          endDate: _filterDateRange?.end,
-          type: _filterType,
-          warehouseLocation: _filterWarehouse,
-        ));
+    context.read<TransactionBloc>().add(
+      TransactionEvent.loadHistoryPaginated(
+        startDate: _filterDateRange?.start,
+        endDate: _filterDateRange?.end,
+        type: _filterType,
+        warehouseLocation: _filterWarehouse,
+      ),
+    );
   }
 
   void _clearFilters() {
@@ -74,9 +78,9 @@ class _JournalPageState extends State<JournalPage> {
       _filterDateRange = null;
       _filterDebtOnly = false;
     });
-    context
-        .read<TransactionBloc>()
-        .add(const TransactionEvent.loadHistoryPaginated());
+    context.read<TransactionBloc>().add(
+      const TransactionEvent.loadHistoryPaginated(),
+    );
   }
 
   bool get _hasActiveFilters =>
@@ -87,69 +91,69 @@ class _JournalPageState extends State<JournalPage> {
 
   void _onTransactionCreated() {
     // Reload journal history
-    context.read<TransactionBloc>().add(const TransactionEvent.loadHistoryPaginated());
+    context.read<TransactionBloc>().add(
+      const TransactionEvent.loadHistoryPaginated(),
+    );
     // Also refresh dashboard so inventory tab shows updated stock
     context.read<DashboardBloc>().add(const DashboardEvent.refreshDashboard());
   }
 
+  Future<void> _openCreateTransaction(BuildContext context, String type) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: context.read<TransactionBloc>()),
+            BlocProvider.value(value: context.read<CategoryBloc>()),
+            BlocProvider.value(value: context.read<CustomerBloc>()),
+          ],
+          child: CreateTransactionPage(type: type),
+        ),
+      ),
+    );
+    if (result == true && mounted) _onTransactionCreated();
+  }
+
+  Widget _createButton(BuildContext context, String type, bool isDesktop) {
+    final isExport = type == 'xuat';
+    final button = _ActionButton(
+      icon: isExport ? Icons.arrow_upward : Icons.arrow_downward,
+      label: isExport ? 'XUẤT KHO' : 'NHẬP KHO',
+      color: isExport ? AppColors.exportColor : AppColors.importColor,
+      onPressed: () => _openCreateTransaction(context, type),
+    );
+    return isDesktop
+        ? SizedBox(width: 170, child: button)
+        : Expanded(child: button);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1100;
     // No Scaffold/AppBar here — HomePage handles the shared AppBar
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+            isDesktop ? 20 : 16,
+            16,
+            isDesktop ? 20 : 16,
+            12,
+          ),
           child: Row(
             children: [
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.arrow_downward,
-                  label: 'NHẬP KHO',
-                  color: AppColors.importColor,
-                  onPressed: () async {
-                    final result = await Navigator.of(context).push<bool>(
-                      MaterialPageRoute(
-                        builder: (_) => MultiBlocProvider(
-                          providers: [
-                            BlocProvider.value(value: context.read<TransactionBloc>()),
-                            BlocProvider.value(value: context.read<CategoryBloc>()),
-                            BlocProvider.value(value: context.read<CustomerBloc>()),
-                          ],
-                          child: const CreateTransactionPage(type: 'nhap'),
-                        ),
-                      ),
-                    );
-                    if (result == true && context.mounted) {
-                      _onTransactionCreated();
-                    }
-                  },
+              if (isDesktop) ...[
+                Text(
+                  'Giao dịch gần đây',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
+                const Spacer(),
+              ],
+              _createButton(context, 'nhap', isDesktop),
               const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.arrow_upward,
-                  label: 'XUẤT KHO',
-                  color: AppColors.exportColor,
-                  onPressed: () async {
-                    final result = await Navigator.of(context).push<bool>(
-                      MaterialPageRoute(
-                        builder: (_) => MultiBlocProvider(
-                          providers: [
-                            BlocProvider.value(value: context.read<TransactionBloc>()),
-                            BlocProvider.value(value: context.read<CategoryBloc>()),
-                            BlocProvider.value(value: context.read<CustomerBloc>()),
-                          ],
-                          child: const CreateTransactionPage(type: 'xuat'),
-                        ),
-                      ),
-                    );
-                    if (result == true && context.mounted) {
-                      _onTransactionCreated();
-                    }
-                  },
-                ),
-              ),
+              _createButton(context, 'xuat', isDesktop),
             ],
           ),
         ),
@@ -163,7 +167,10 @@ class _JournalPageState extends State<JournalPage> {
                 onTap: () => setState(() => _showFilters = !_showFilters),
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 8,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -202,10 +209,7 @@ class _JournalPageState extends State<JournalPage> {
                     padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                     child: Text(
                       'Xóa lọc',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.error,
-                      ),
+                      style: TextStyle(fontSize: 13, color: AppColors.error),
                     ),
                   ),
                 ),
@@ -238,15 +242,20 @@ class _JournalPageState extends State<JournalPage> {
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.divider),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.date_range,
-                            size: 18, color: AppColors.textSecondaryOf(context)),
+                        Icon(
+                          Icons.date_range,
+                          size: 18,
+                          color: AppColors.textSecondaryOf(context),
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           _filterDateRange != null
@@ -320,21 +329,31 @@ class _JournalPageState extends State<JournalPage> {
                           decoration: const InputDecoration(
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 8),
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
                             border: OutlineInputBorder(),
                             hintText: 'Kho',
                           ),
                           style: TextStyle(
-                              fontSize: 13, color: AppColors.textPrimaryOf(context)),
+                            fontSize: 13,
+                            color: AppColors.textPrimaryOf(context),
+                          ),
                           items: [
                             const DropdownMenuItem(
                               value: null,
-                              child: Text('Tất cả', style: TextStyle(fontSize: 13)),
+                              child: Text(
+                                'Tất cả',
+                                style: TextStyle(fontSize: 13),
+                              ),
                             ),
                             ...AppConstants.warehouseLocationNames.map(
                               (name) => DropdownMenuItem(
                                 value: name,
-                                child: Text(name, style: const TextStyle(fontSize: 13)),
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
                               ),
                             ),
                           ],
@@ -357,16 +376,17 @@ class _JournalPageState extends State<JournalPage> {
               return state.map(
                 initial: (_) {
                   context.read<TransactionBloc>().add(
-                        const TransactionEvent.loadHistoryPaginated(),
-                      );
+                    const TransactionEvent.loadHistoryPaginated(),
+                  );
                   return const AppLoadingIndicator();
                 },
                 loading: (_) => const AppLoadingIndicator(),
-                historyLoaded: (loaded) => _buildTxList(
-                  loaded.transactions, false, false,
-                ),
+                historyLoaded: (loaded) =>
+                    _buildTxList(loaded.transactions, false, false),
                 paginatedHistoryLoaded: (loaded) => _buildTxList(
-                  loaded.transactions, loaded.hasMore, loaded.isLoadingMore,
+                  loaded.transactions,
+                  loaded.hasMore,
+                  loaded.isLoadingMore,
                 ),
                 created: (_) => const AppLoadingIndicator(),
                 debtUpdated: (_) {
@@ -385,9 +405,9 @@ class _JournalPageState extends State<JournalPage> {
                 },
                 error: (e) => AppErrorWidget(
                   message: e.message,
-                  onRetry: () => context
-                      .read<TransactionBloc>()
-                      .add(const TransactionEvent.loadHistoryPaginated()),
+                  onRetry: () => context.read<TransactionBloc>().add(
+                    const TransactionEvent.loadHistoryPaginated(),
+                  ),
                 ),
               );
             },
@@ -398,7 +418,9 @@ class _JournalPageState extends State<JournalPage> {
   }
 
   Widget _buildTxList(
-    List<dynamic> transactions, bool hasMore, bool isLoadingMore,
+    List<dynamic> transactions,
+    bool hasMore,
+    bool isLoadingMore,
   ) {
     // Apply client-side debt filter
     var filteredTx = transactions;
@@ -409,12 +431,14 @@ class _JournalPageState extends State<JournalPage> {
     if (filteredTx.isEmpty) {
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<TransactionBloc>().add(TransactionEvent.refreshHistory(
-            startDate: _filterDateRange?.start,
-            endDate: _filterDateRange?.end,
-            type: _filterType,
-            warehouseLocation: _filterWarehouse,
-          ));
+          context.read<TransactionBloc>().add(
+            TransactionEvent.refreshHistory(
+              startDate: _filterDateRange?.start,
+              endDate: _filterDateRange?.end,
+              type: _filterType,
+              warehouseLocation: _filterWarehouse,
+            ),
+          );
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -442,165 +466,206 @@ class _JournalPageState extends State<JournalPage> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<TransactionBloc>().add(TransactionEvent.refreshHistory(
-          startDate: _filterDateRange?.start,
-          endDate: _filterDateRange?.end,
-          type: _filterType,
-          warehouseLocation: _filterWarehouse,
-        ));
+        context.read<TransactionBloc>().add(
+          TransactionEvent.refreshHistory(
+            startDate: _filterDateRange?.start,
+            endDate: _filterDateRange?.end,
+            type: _filterType,
+            warehouseLocation: _filterWarehouse,
+          ),
+        );
       },
-      child: ListView.builder(
-        controller: _scrollCtl,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: items.length + (hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= items.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: CircularProgressIndicator.adaptive(),
-              ),
-            );
-          }
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = constraints.maxWidth > 1100
+              ? (constraints.maxWidth - 1060) / 2
+              : 16.0;
+          return ListView.builder(
+            controller: _scrollCtl,
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            itemCount: items.length + (hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= items.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: isLoadingMore
+                        ? const CircularProgressIndicator.adaptive()
+                        : OutlinedButton.icon(
+                            onPressed: () => context
+                                .read<TransactionBloc>()
+                                .add(const TransactionEvent.loadMoreHistory()),
+                            icon: const Icon(Icons.expand_more),
+                            label: const Text('Tải thêm giao dịch'),
+                          ),
+                  ),
+                );
+              }
 
-          final item = items[index];
-          if (item.isHeader) {
-            return _buildDateHeader(item.dateLabel!, item.count!);
-          }
+              final item = items[index];
+              if (item.isHeader) {
+                return _buildDateHeader(item.dateLabel!, item.count!);
+              }
 
-          final tx = item.tx!;
-          final isExport = tx.type == 'xuat';
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              margin: EdgeInsets.zero,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () async {
-                  final result = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider.value(
-                        value: context.read<TransactionBloc>(),
-                        child: TransactionDetailPage(transaction: tx),
-                      ),
-                    ),
-                  );
-                  if (result == true && context.mounted) {
-                    _onTransactionCreated();
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header: icon + customer + total
-                      Row(
+              final tx = item.tx!;
+              final isExport = tx.type == 'xuat';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async {
+                      final result = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<TransactionBloc>(),
+                            child: TransactionDetailPage(transaction: tx),
+                          ),
+                        ),
+                      );
+                      if (result == true && context.mounted) {
+                        _onTransactionCreated();
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: isExport
-                                ? AppColors.exportColor.withValues(alpha: 0.1)
-                                : AppColors.importColor.withValues(alpha: 0.1),
-                            child: Icon(
-                              isExport ? Icons.arrow_upward : Icons.arrow_downward,
-                              size: 16,
-                              color: isExport ? AppColors.exportColor : AppColors.importColor,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  tx.customerName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                Text(
-                                  DateFormatter.formatTime(tx.createdAt),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondaryOf(context),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                          // Header: icon + customer + total
+                          Row(
                             children: [
-                              Text(
-                                CurrencyFormatter.format(tx.totalValue),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: isExport ? AppColors.exportColor : AppColors.importColor,
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: isExport
+                                    ? AppColors.exportColor.withValues(
+                                        alpha: 0.1,
+                                      )
+                                    : AppColors.importColor.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                child: Icon(
+                                  isExport
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
+                                  size: 16,
+                                  color: isExport
+                                      ? AppColors.exportColor
+                                      : AppColors.importColor,
                                 ),
                               ),
-                              if (tx.isDebt)
-                                Container(
-                                  margin: const EdgeInsets.only(top: 2),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.debtActive.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'GHI NỢ',
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.customerName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      DateFormatter.formatTime(tx.createdAt),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondaryOf(
+                                          context,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    CurrencyFormatter.format(tx.totalValue),
                                     style: TextStyle(
-                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.debtActive,
+                                      fontSize: 14,
+                                      color: isExport
+                                          ? AppColors.exportColor
+                                          : AppColors.importColor,
                                     ),
                                   ),
-                                ),
+                                  if (tx.isDebt)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.debtActive.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'GHI NỢ',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.debtActive,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
+                          // Items list
+                          if (tx.itemsSummary.isNotEmpty) ...[
+                            const Divider(height: 16),
+                            ...tx.itemsSummary.map((item) {
+                              final name = item['name'] ?? '';
+                              final qty = item['qty'] ?? 0;
+                              final price = (item['price'] ?? 0).toDouble();
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Row(
+                                  children: [
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.circle,
+                                      size: 5,
+                                      color: isExport
+                                          ? AppColors.exportColor
+                                          : AppColors.importColor,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '$name',
+                                        style: const TextStyle(fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      '$qty × ${CurrencyFormatter.format(price)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondaryOf(
+                                          context,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
                         ],
                       ),
-                      // Items list
-                      if (tx.itemsSummary.isNotEmpty) ...[
-                        const Divider(height: 16),
-                        ...tx.itemsSummary.map((item) {
-                          final name = item['name'] ?? '';
-                          final qty = item['qty'] ?? 0;
-                          final price = (item['price'] ?? 0).toDouble();
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              children: [
-                                const SizedBox(width: 4),
-                                Icon(Icons.circle, size: 5,
-                                  color: isExport ? AppColors.exportColor : AppColors.importColor),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '$name',
-                                    style: const TextStyle(fontSize: 13),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Text(
-                                  '$qty × ${CurrencyFormatter.format(price)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondaryOf(context),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
@@ -655,9 +720,7 @@ class _JournalPageState extends State<JournalPage> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Divider(
-              color: AppColors.primary.withValues(alpha: 0.2),
-            ),
+            child: Divider(color: AppColors.primary.withValues(alpha: 0.2)),
           ),
         ],
       ),
@@ -708,10 +771,10 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? chipColor.withValues(alpha: 0.15) : Colors.transparent,
-          border: Border.all(
-            color: selected ? chipColor : AppColors.divider,
-          ),
+          color: selected
+              ? chipColor.withValues(alpha: 0.15)
+              : Colors.transparent,
+          border: Border.all(color: selected ? chipColor : AppColors.divider),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
@@ -750,9 +813,7 @@ class _ActionButton extends StatelessWidget {
         backgroundColor: color,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

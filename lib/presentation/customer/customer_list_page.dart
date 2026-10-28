@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
@@ -32,7 +33,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
   @override
   void initState() {
     super.initState();
-    context.read<CustomerBloc>().add(const CustomerEvent.loadCustomersPaginated());
+    context.read<CustomerBloc>().add(
+      const CustomerEvent.loadCustomersPaginated(),
+    );
     _scrollCtl.addListener(_onScroll);
   }
 
@@ -63,16 +66,16 @@ class _CustomerListPageState extends State<CustomerListPage> {
       appBar: widget.showAppBar
           ? AppBar(title: const Text('Khách hàng'))
           : null,
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fab_customer',
-        onPressed: () => _showAddOptions(context),
-        child: const Icon(Icons.person_add),
-      ),
+      floatingActionButton: MediaQuery.sizeOf(context).width >= 1100
+          ? null
+          : FloatingActionButton(
+              heroTag: 'fab_customer',
+              onPressed: () => _showAddOptions(context),
+              child: const Icon(Icons.person_add),
+            ),
       body: BlocConsumer<CustomerBloc, CustomerState>(
-        listenWhen: (prev, curr) => curr.maybeWhen(
-          actionSuccess: (_) => true,
-          orElse: () => false,
-        ),
+        listenWhen: (prev, curr) =>
+            curr.maybeWhen(actionSuccess: (_) => true, orElse: () => false),
         listener: (context, state) {
           state.mapOrNull(
             actionSuccess: (s) {
@@ -99,17 +102,20 @@ class _CustomerListPageState extends State<CustomerListPage> {
           return state.map(
             initial: (_) => const AppLoadingIndicator(),
             loading: (_) => const AppLoadingIndicator(),
-            customersLoaded: (loaded) => _buildSearchableList(loaded.customers, false, false),
+            customersLoaded: (loaded) =>
+                _buildSearchableList(loaded.customers, false, false),
             paginatedLoaded: (loaded) => _buildSearchableList(
-              loaded.customers, loaded.hasMore, loaded.isLoadingMore,
+              loaded.customers,
+              loaded.hasMore,
+              loaded.isLoadingMore,
             ),
             debtsLoaded: (_) => const SizedBox.shrink(),
             actionSuccess: (_) => const AppLoadingIndicator(),
             error: (e) => AppErrorWidget(
               message: e.message,
-              onRetry: () => context
-                  .read<CustomerBloc>()
-                  .add(const CustomerEvent.loadCustomersPaginated()),
+              onRetry: () => context.read<CustomerBloc>().add(
+                const CustomerEvent.loadCustomersPaginated(),
+              ),
             ),
           );
         },
@@ -118,7 +124,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
   }
 
   Widget _buildSearchableList(
-    List<Customer> customers, bool hasMore, bool isLoadingMore,
+    List<Customer> customers,
+    bool hasMore,
+    bool isLoadingMore,
   ) {
     final filtered = _searchQuery.isEmpty
         ? customers
@@ -130,29 +138,58 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
     return Column(
       children: [
-        // Search bar
+        if (MediaQuery.sizeOf(context).width >= 1100)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Row(
+              children: [
+                Text(
+                  'Khách hàng',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${customers.length} người',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: () => _showAddOptions(context),
+                  icon: const Icon(Icons.person_add_outlined),
+                  label: const Text('Thêm khách hàng'),
+                ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Tìm khách hàng...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () => setState(() => _searchQuery = ''),
-                    )
-                  : null,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Tìm khách hàng...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _searchQuery = ''),
+                      )
+                    : null,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               ),
-              filled: true,
-              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              onChanged: (v) => setState(() => _searchQuery = v),
             ),
-            onChanged: (v) => setState(() => _searchQuery = v),
           ),
         ),
         Expanded(child: _buildList(filtered, hasMore, isLoadingMore)),
@@ -160,11 +197,17 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
-  Widget _buildList(List<Customer> customers, bool hasMore, bool isLoadingMore) {
+  Widget _buildList(
+    List<Customer> customers,
+    bool hasMore,
+    bool isLoadingMore,
+  ) {
     if (customers.isEmpty) {
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<CustomerBloc>().add(const CustomerEvent.refreshCustomers());
+          context.read<CustomerBloc>().add(
+            const CustomerEvent.refreshCustomers(),
+          );
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -173,10 +216,16 @@ class _CustomerListPageState extends State<CustomerListPage> {
             Center(
               child: Column(
                 children: [
-                  Icon(Icons.people_outline, size: 64, color: AppColors.textHint),
+                  Icon(
+                    Icons.people_outline,
+                    size: 64,
+                    color: AppColors.textHint,
+                  ),
                   SizedBox(height: 12),
-                  Text('Chưa có khách hàng',
-                      style: TextStyle(color: AppColors.textSecondary)),
+                  Text(
+                    'Chưa có khách hàng',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
                 ],
               ),
             ),
@@ -187,79 +236,103 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<CustomerBloc>().add(const CustomerEvent.refreshCustomers());
+        context.read<CustomerBloc>().add(
+          const CustomerEvent.refreshCustomers(),
+        );
       },
-      child: ListView.separated(
-        controller: _scrollCtl,
-        padding: const EdgeInsets.all(16),
-        itemCount: customers.length + (hasMore ? 1 : 0),
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          if (index >= customers.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: CircularProgressIndicator.adaptive(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          Widget itemBuilder(BuildContext context, int index) {
+            if (index >= customers.length) {
+              return Center(
+                child: isLoadingMore
+                    ? const CircularProgressIndicator.adaptive()
+                    : OutlinedButton.icon(
+                        onPressed: () => context.read<CustomerBloc>().add(
+                          const CustomerEvent.loadMoreCustomers(),
+                        ),
+                        icon: const Icon(Icons.expand_more),
+                        label: const Text('Tải thêm khách hàng'),
+                      ),
+              );
+            }
+            return _customerCard(customers[index]);
+          }
+
+          if (constraints.maxWidth >= 850) {
+            return GridView.builder(
+              controller: _scrollCtl,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 560,
+                mainAxisExtent: 90,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
               ),
+              itemCount: customers.length + (hasMore ? 1 : 0),
+              itemBuilder: itemBuilder,
             );
           }
-          final customer = customers[index];
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: customer.type == 'khach_quen'
-                    ? AppColors.primary.withValues(alpha: 0.1)
-                    : AppColors.info.withValues(alpha: 0.1),
-                child: Icon(
-                  customer.type == 'khach_quen'
-                      ? Icons.star
-                      : Icons.person_outline,
-                  color: customer.type == 'khach_quen'
-                      ? AppColors.primary
-                      : AppColors.info,
-                ),
-              ),
-              title: Text(
-                customer.name,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                customer.phone ?? 'Chưa có SĐT',
-                style: TextStyle(
-                  color: customer.phone != null
-                      ? AppColors.textSecondary
-                      : AppColors.textHint,
-                ),
-              ),
-              trailing: customer.hasDebt
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          CurrencyFormatter.format(customer.totalDebt),
-                          style: const TextStyle(
-                            color: AppColors.debtActive,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text(
-                          'Công nợ',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.debtActive,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Icon(
-                      Icons.check_circle_outline,
-                      color: AppColors.success,
-                    ),
-              onTap: () => _showDebtBottomSheet(context, customer),
-            ),
+          return ListView.separated(
+            controller: _scrollCtl,
+            padding: const EdgeInsets.all(16),
+            itemCount: customers.length + (hasMore ? 1 : 0),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: itemBuilder,
           );
         },
+      ),
+    );
+  }
+
+  Widget _customerCard(Customer customer) {
+    return Card(
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: customer.type == 'khach_quen'
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.info.withValues(alpha: 0.1),
+          child: Icon(
+            customer.type == 'khach_quen' ? Icons.star : Icons.person_outline,
+            color: customer.type == 'khach_quen'
+                ? AppColors.primary
+                : AppColors.info,
+          ),
+        ),
+        title: Text(
+          customer.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          customer.phone ?? 'Chưa có SĐT',
+          style: TextStyle(
+            color: customer.phone != null
+                ? AppColors.textSecondaryOf(context)
+                : AppColors.textHintOf(context),
+          ),
+        ),
+        trailing: customer.hasDebt
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    CurrencyFormatter.format(customer.totalDebt),
+                    style: const TextStyle(
+                      color: AppColors.debtActive,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(
+                    'Công nợ',
+                    style: TextStyle(fontSize: 11, color: AppColors.debtActive),
+                  ),
+                ],
+              )
+            : const Icon(Icons.check_circle_outline, color: AppColors.success),
+        onTap: () => _showDebtBottomSheet(context, customer),
       ),
     );
   }
@@ -283,14 +356,14 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
   void _showDebtBottomSheet(BuildContext context, Customer customer) {
     // Load debt records when opening
-    context.read<CustomerBloc>().add(CustomerEvent.loadDebts(
-      customerId: customer.id,
-      customer: customer,
-    ));
+    context.read<CustomerBloc>().add(
+      CustomerEvent.loadDebts(customerId: customer.id, customer: customer),
+    );
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 760),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -335,20 +408,24 @@ class _CustomerListPageState extends State<CustomerListPage> {
                             children: [
                               Text(
                                 customer.name,
-                                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                style: Theme.of(sheetContext)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               if (customer.phone != null)
                                 Text(
                                   customer.phone!,
-                                  style: const TextStyle(color: AppColors.textSecondary),
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                             ],
                           ),
                         ),
-                        if (customer.phone != null && customer.phone!.isNotEmpty)
+                        if (customer.phone != null &&
+                            customer.phone!.isNotEmpty)
                           FilledButton.icon(
                             onPressed: () => _makePhoneCall(customer.phone!),
                             icon: const Icon(Icons.phone, size: 18),
@@ -356,7 +433,10 @@ class _CustomerListPageState extends State<CustomerListPage> {
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.success,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -393,7 +473,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
                             ),
                           );
                           // Reload customer list when returning from debt page
-                          bloc.add(const CustomerEvent.loadCustomersPaginated());
+                          bloc.add(
+                            const CustomerEvent.loadCustomersPaginated(),
+                          );
                         },
                         icon: const Icon(Icons.history, size: 18),
                         label: const Text('Xem toàn bộ lịch sử'),
@@ -456,7 +538,8 @@ class _CustomerListPageState extends State<CustomerListPage> {
                               final confirmed = await ConfirmDialog.show(
                                 pageContext,
                                 title: 'Xóa khách hàng',
-                                message: 'Bạn có chắc muốn xóa "${customer.name}"?',
+                                message:
+                                    'Bạn có chắc muốn xóa "${customer.name}"?',
                                 confirmText: 'Xóa',
                                 confirmColor: AppColors.error,
                               );
@@ -466,10 +549,15 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                 );
                               }
                             },
-                            icon: const Icon(Icons.delete_outline, size: 18,
-                                color: AppColors.error),
-                            label: const Text('Xóa',
-                                style: TextStyle(color: AppColors.error)),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
+                            label: const Text(
+                              'Xóa',
+                              style: TextStyle(color: AppColors.error),
+                            ),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: AppColors.error),
                             ),
@@ -543,11 +631,19 @@ class _CustomerListPageState extends State<CustomerListPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.arrow_upward, size: 14,
-                                color: AppColors.debtActive),
+                            Icon(
+                              Icons.arrow_upward,
+                              size: 14,
+                              color: AppColors.debtActive,
+                            ),
                             const SizedBox(width: 4),
-                            const Text('Tổng ghi nợ',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            const Text(
+                              'Tổng ghi nợ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -562,22 +658,26 @@ class _CustomerListPageState extends State<CustomerListPage> {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 1,
-                    height: 40,
-                    color: AppColors.divider,
-                  ),
+                  Container(width: 1, height: 40, color: AppColors.divider),
                   Expanded(
                     child: Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.arrow_downward, size: 14,
-                                color: AppColors.success),
+                            Icon(
+                              Icons.arrow_downward,
+                              size: 14,
+                              color: AppColors.success,
+                            ),
                             const SizedBox(width: 4),
-                            const Text('Đã thanh toán',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            const Text(
+                              'Đã thanh toán',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -617,7 +717,10 @@ class _CustomerListPageState extends State<CustomerListPage> {
             ),
             Text(
               '${records.length} bản ghi',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -645,11 +748,19 @@ class _CustomerListPageState extends State<CustomerListPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(label,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       Text(
                         DateFormatter.formatDateTime(record.createdAt),
-                        style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textHint,
+                        ),
                       ),
                     ],
                   ),
@@ -667,7 +778,10 @@ class _CustomerListPageState extends State<CustomerListPage> {
                     ),
                     Text(
                       'Dư: ${CurrencyFormatter.format(record.runningBalance)}',
-                      style: const TextStyle(fontSize: 10, color: AppColors.textHint),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.textHint,
+                      ),
                     ),
                   ],
                 ),
@@ -679,10 +793,17 @@ class _CustomerListPageState extends State<CustomerListPage> {
     );
   }
 
-
   void _showAddOptions(BuildContext context) {
+    // Browsers cannot read the device contact database; use the existing
+    // validated manual entry form on Web.
+    if (kIsWeb) {
+      _showAddCustomerDialog(context);
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
+      constraints: const BoxConstraints(maxWidth: 560),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -703,18 +824,23 @@ class _CustomerListPageState extends State<CustomerListPage> {
               const SizedBox(height: 16),
               Text(
                 'Thêm khách hàng',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  child: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                  child: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.primary,
+                  ),
                 ),
-                title: const Text('Nhập tay',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
+                  'Nhập tay',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 subtitle: const Text('Tự nhập tên, SĐT và loại khách hàng'),
                 trailing: const Icon(Icons.chevron_right),
                 shape: RoundedRectangleBorder(
@@ -729,11 +855,18 @@ class _CustomerListPageState extends State<CustomerListPage> {
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.info.withValues(alpha: 0.1),
-                  child: const Icon(Icons.contacts_outlined, color: AppColors.info),
+                  child: const Icon(
+                    Icons.contacts_outlined,
+                    color: AppColors.info,
+                  ),
                 ),
-                title: const Text('Thêm từ danh bạ',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Chọn một hoặc nhiều liên hệ từ điện thoại'),
+                title: const Text(
+                  'Thêm từ danh bạ',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Chọn một hoặc nhiều liên hệ từ điện thoại',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -766,6 +899,13 @@ class _CustomerListPageState extends State<CustomerListPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (kIsWeb) ...[
+                  const Text(
+                    'Trình duyệt không truy cập danh bạ thiết bị. Hãy nhập '
+                    'thông tin khách hàng tại đây.',
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TextFormField(
                   controller: nameCtl,
                   decoration: const InputDecoration(
@@ -793,12 +933,15 @@ class _CustomerListPageState extends State<CustomerListPage> {
                   ),
                   items: const [
                     DropdownMenuItem(
-                        value: 'khach_le', child: Text('Khách lẻ')),
+                      value: 'khach_le',
+                      child: Text('Khách lẻ'),
+                    ),
                     DropdownMenuItem(
-                        value: 'khach_quen', child: Text('Khách quen')),
+                      value: 'khach_quen',
+                      child: Text('Khách quen'),
+                    ),
                   ],
-                  onChanged: (v) =>
-                      setDialogState(() => type = v ?? type),
+                  onChanged: (v) => setDialogState(() => type = v ?? type),
                 ),
               ],
             ),
@@ -828,9 +971,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
                   updatedAt: now,
                   updatedBy: userEmail,
                 );
-                context
-                    .read<CustomerBloc>()
-                    .add(CustomerEvent.addCustomer(customer));
+                context.read<CustomerBloc>().add(
+                  CustomerEvent.addCustomer(customer),
+                );
                 Navigator.pop(dialogContext);
               },
               child: const Text('Thêm'),
@@ -884,12 +1027,15 @@ class _CustomerListPageState extends State<CustomerListPage> {
                   ),
                   items: const [
                     DropdownMenuItem(
-                        value: 'khach_le', child: Text('Khách lẻ')),
+                      value: 'khach_le',
+                      child: Text('Khách lẻ'),
+                    ),
                     DropdownMenuItem(
-                        value: 'khach_quen', child: Text('Khách quen')),
+                      value: 'khach_quen',
+                      child: Text('Khách quen'),
+                    ),
                   ],
-                  onChanged: (v) =>
-                      setDialogState(() => type = v ?? type),
+                  onChanged: (v) => setDialogState(() => type = v ?? type),
                 ),
               ],
             ),
@@ -921,9 +1067,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
                     return email;
                   }(),
                 );
-                context
-                    .read<CustomerBloc>()
-                    .add(CustomerEvent.updateCustomer(updated));
+                context.read<CustomerBloc>().add(
+                  CustomerEvent.updateCustomer(updated),
+                );
                 Navigator.pop(dialogContext);
               },
               child: const Text('Lưu'),
@@ -948,7 +1094,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Công nợ hiện tại: ${CurrencyFormatter.format(customer.totalDebt)}'),
+              Text(
+                'Công nợ hiện tại: ${CurrencyFormatter.format(customer.totalDebt)}',
+              ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: amountCtl,
@@ -978,19 +1126,20 @@ class _CustomerListPageState extends State<CustomerListPage> {
           ElevatedButton(
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
-              final amount = double.tryParse(
+              final amount =
+                  double.tryParse(
                     amountCtl.text.replaceAll(RegExp(r'[^\d]'), ''),
                   ) ??
                   0;
               context.read<CustomerBloc>().add(
-                    CustomerEvent.makePayment(
-                      customerId: customer.id,
-                      amount: amount,
-                      note: noteCtl.text.trim().isNotEmpty
-                          ? noteCtl.text.trim()
-                          : null,
-                    ),
-                  );
+                CustomerEvent.makePayment(
+                  customerId: customer.id,
+                  amount: amount,
+                  note: noteCtl.text.trim().isNotEmpty
+                      ? noteCtl.text.trim()
+                      : null,
+                ),
+              );
               Navigator.pop(dialogContext);
             },
             child: const Text('Xác nhận'),
@@ -1011,9 +1160,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
       confirmColor: AppColors.success,
     );
     if (confirmed && context.mounted) {
-      context.read<CustomerBloc>().add(
-            CustomerEvent.settleAll(customer.id),
-          );
+      context.read<CustomerBloc>().add(CustomerEvent.settleAll(customer.id));
     }
   }
 
@@ -1055,15 +1202,19 @@ class _CustomerListPageState extends State<CustomerListPage> {
         authenticated: (auth) => userEmail = auth.user.email,
       );
 
-      final customersWithAudit = result.map((c) => Customer(
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        type: c.type,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-        updatedBy: userEmail,
-      )).toList();
+      final customersWithAudit = result
+          .map(
+            (c) => Customer(
+              id: c.id,
+              name: c.name,
+              phone: c.phone,
+              type: c.type,
+              createdAt: c.createdAt,
+              updatedAt: c.updatedAt,
+              updatedBy: userEmail,
+            ),
+          )
+          .toList();
 
       context.read<CustomerBloc>().add(
         CustomerEvent.addMultipleCustomers(customersWithAudit),
