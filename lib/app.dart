@@ -173,7 +173,7 @@ Page<void> _routePage(GoRouterState state, Widget child) {
       name: name,
       arguments: arguments,
       restorationId: restorationId,
-      child: child,
+      child: _NotificationPermissionGate(child: child),
     );
   }
 
@@ -182,8 +182,27 @@ Page<void> _routePage(GoRouterState state, Widget child) {
     name: name,
     arguments: arguments,
     restorationId: restorationId,
-    child: child,
+    child: _NotificationPermissionGate(child: child),
   );
+}
+
+class _NotificationPermissionGate extends StatelessWidget {
+  final Widget child;
+
+  const _NotificationPermissionGate({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        state.mapOrNull(
+          authenticated: (_) =>
+              unawaited(WebPushService().requestPermissionIfNeeded(context)),
+        );
+      },
+      child: child,
+    );
+  }
 }
 
 class _AuthenticatedRoute extends StatelessWidget {

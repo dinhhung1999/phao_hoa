@@ -5,6 +5,12 @@ import 'package:web/web.dart' as web;
 
 bool isSupported() => globalContext.hasProperty('Notification'.toJS).toDart;
 
+String permission() =>
+    isSupported() ? web.Notification.permission : 'unsupported';
+
+Future<bool> requestPermission() async =>
+    (await web.Notification.requestPermission().toDart).toDart == 'granted';
+
 bool isPageVisible() => web.window.document.visibilityState == 'visible';
 
 void show(

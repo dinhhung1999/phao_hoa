@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "phao-hoa-92aee"
-  }
+  },
+  "targets": {
+    "phao-hoa-92aee": {
+      "hosting": {
+        "cu": [
+          "phao-hoa-92aee"
+        ],
+        "moi": [
+          "phaohoa"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

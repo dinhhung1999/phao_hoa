@@ -27,6 +27,7 @@ class WebPushService {
   String? _userId;
   void Function(String path)? _openPath;
   Timer? _pendingTimer;
+  bool _permissionPromptOpen = false;
 
   void listenInForeground({void Function(String path)? onOpen}) {
     if (!kIsWeb) return;
@@ -37,6 +38,80 @@ class WebPushService {
   /// Stop this session's listeners when signing out.
   Future<void> disableOnSignOut() async {
     _stopListeners();
+  }
+
+  /// Ask for permission on the first authenticated visit. The system prompt
+  /// must be requested from a user gesture, so it is opened by the dialog CTA.
+  Future<void> requestPermissionIfNeeded(BuildContext context) async {
+    if (!kIsWeb || !browser.isSupported() || _permissionPromptOpen) return;
+    final permission = browser.permission();
+    if (permission == 'granted' || !context.mounted) return;
+
+    _permissionPromptOpen = true;
+    try {
+      if (permission == 'denied') {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Thông báo đang bị chặn'),
+            content: const Text(
+              'Để nhận thông báo khi ứng dụng chạy nền, hãy mở cài đặt quyền '
+              'của trang web trên trình duyệt và cho phép thông báo.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Đã hiểu'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Bật thông báo'),
+          content: const Text(
+            'Cho phép thông báo để nhận cập nhật nhập hàng, xuất hàng, '
+            'kiểm kho và thay đổi dữ liệu khi ứng dụng chạy nền.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Để sau'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final permissionRequest = browser.requestPermission();
+                Navigator.of(dialogContext).pop();
+                try {
+                  final granted = await permissionRequest;
+                  if (!granted && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Chưa được cấp quyền. Bạn có thể đổi quyền '
+                          'thông báo trong cài đặt trình duyệt.',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (error) {
+                  debugPrint(
+                    'Could not request browser notification permission: $error',
+                  );
+                }
+              },
+              child: const Text('Bật thông báo'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      _permissionPromptOpen = false;
+    }
   }
 
   void _startListeners() {

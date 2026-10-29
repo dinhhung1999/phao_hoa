@@ -89,9 +89,10 @@ class AuthRemoteDatasource {
   String _mapFirebaseAuthError(String code) {
     switch (code) {
       case 'user-not-found':
-        return 'Không tìm thấy tài khoản với email này.';
       case 'wrong-password':
-        return 'Mật khẩu không đúng.';
+      case 'invalid-credential':
+      case 'invalid-login-credentials':
+        return 'Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.';
       case 'email-already-in-use':
         return 'Email đã được sử dụng.';
       case 'weak-password':
