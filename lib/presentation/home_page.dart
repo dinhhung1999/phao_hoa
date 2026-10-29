@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'auth/auth_bloc.dart';
 import 'auth/login_page.dart';
+import 'auth/access_gate.dart';
 import 'dashboard/dashboard_bloc.dart';
 import 'dashboard/dashboard_page.dart';
 import 'catalog/catalog_page.dart';
@@ -80,173 +81,175 @@ class _HomePageState extends State<HomePage> {
           loading: (_) => const Scaffold(
             body: Center(child: CircularProgressIndicator.adaptive()),
           ),
-          authenticated: (_) => LayoutBuilder(
-            builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth >= 1100;
-              final isWide = constraints.maxWidth >= 840;
-              final pages = _pages;
-              final pageStack = kIsWeb
-                  ? pages[_currentIndex]
-                  : IndexedStack(index: _currentIndex, children: pages);
-              return Scaffold(
-                appBar: AppBar(
-                  toolbarHeight: isWide ? 76 : null,
-                  centerTitle: !isWide,
-                  title: isWide
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              const [
-                                'Tồn kho',
-                                'Danh mục',
-                                'Nhật ký giao dịch',
-                              ][_currentIndex],
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              const [
-                                'Theo dõi số lượng và giá trị hàng hóa',
-                                'Quản lý sản phẩm, khách hàng và công thức',
-                                'Xem lịch sử và tạo giao dịch mới',
-                              ][_currentIndex],
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        )
-                      : const Text('Quản lý Kho Pháo Hoa'),
-                  actions: [
-                    // Show statistics button on Dashboard tab
-                    if (_currentIndex == 0)
-                      isWide
-                          ? TextButton.icon(
-                              onPressed: () => context.push('/statistics'),
-                              icon: const Icon(Icons.bar_chart_outlined),
-                              label: const Text('Thống kê'),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.bar_chart_outlined),
-                              tooltip: 'Thống kê',
-                              onPressed: () => context.push('/statistics'),
-                            ),
-                    // Show report button only on Journal tab
-                    if (_currentIndex == 2)
-                      isWide
-                          ? TextButton.icon(
-                              onPressed: () => context.push('/daily-report'),
-                              icon: const Icon(Icons.assessment_outlined),
-                              label: const Text('Báo cáo'),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.assessment_outlined),
-                              tooltip: 'Báo cáo hàng ngày',
-                              onPressed: () => context.push('/daily-report'),
-                            ),
-                    if (!isDesktop)
-                      IconButton(
-                        icon: const Icon(Icons.settings_outlined),
-                        tooltip: 'Cài đặt',
-                        onPressed: () => context.push('/settings'),
-                      ),
-                    if (isWide) const SizedBox(width: 20),
-                  ],
-                ),
-                body: GestureDetector(
-                  onTap: () => FocusScope.of(context).unfocus(),
-                  behavior: HitTestBehavior.translucent,
-                  child: isDesktop
-                      ? Row(
-                          children: [
-                            SizedBox(
-                              width: 272,
-                              child: _DesktopSidebar(
-                                currentIndex: _currentIndex,
+          authenticated: (_) => AccessGate(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth >= 1100;
+                final isWide = constraints.maxWidth >= 840;
+                final pages = _pages;
+                final pageStack = kIsWeb
+                    ? pages[_currentIndex]
+                    : IndexedStack(index: _currentIndex, children: pages);
+                return Scaffold(
+                  appBar: AppBar(
+                    toolbarHeight: isWide ? 76 : null,
+                    centerTitle: !isWide,
+                    title: isWide
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                const [
+                                  'Tồn kho',
+                                  'Danh mục',
+                                  'Nhật ký giao dịch',
+                                ][_currentIndex],
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                const [
+                                  'Theo dõi số lượng và giá trị hàng hóa',
+                                  'Quản lý sản phẩm, khách hàng và công thức',
+                                  'Xem lịch sử và tạo giao dịch mới',
+                                ][_currentIndex],
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          )
+                        : const Text('Quản lý Kho Pháo Hoa'),
+                    actions: [
+                      // Show statistics button on Dashboard tab
+                      if (_currentIndex == 0)
+                        isWide
+                            ? TextButton.icon(
+                                onPressed: () => context.push('/statistics'),
+                                icon: const Icon(Icons.bar_chart_outlined),
+                                label: const Text('Thống kê'),
+                              )
+                            : IconButton(
+                                icon: const Icon(Icons.bar_chart_outlined),
+                                tooltip: 'Thống kê',
+                                onPressed: () => context.push('/statistics'),
+                              ),
+                      // Show report button only on Journal tab
+                      if (_currentIndex == 2)
+                        isWide
+                            ? TextButton.icon(
+                                onPressed: () => context.push('/daily-report'),
+                                icon: const Icon(Icons.assessment_outlined),
+                                label: const Text('Báo cáo'),
+                              )
+                            : IconButton(
+                                icon: const Icon(Icons.assessment_outlined),
+                                tooltip: 'Báo cáo hàng ngày',
+                                onPressed: () => context.push('/daily-report'),
+                              ),
+                      if (!isDesktop)
+                        IconButton(
+                          icon: const Icon(Icons.settings_outlined),
+                          tooltip: 'Cài đặt',
+                          onPressed: () => context.push('/settings'),
+                        ),
+                      if (isWide) const SizedBox(width: 20),
+                    ],
+                  ),
+                  body: GestureDetector(
+                    onTap: () => FocusScope.of(context).unfocus(),
+                    behavior: HitTestBehavior.translucent,
+                    child: isDesktop
+                        ? Row(
+                            children: [
+                              SizedBox(
+                                width: 272,
+                                child: _DesktopSidebar(
+                                  currentIndex: _currentIndex,
+                                  onDestinationSelected: (index) =>
+                                      _openSection(context, index),
+                                ),
+                              ),
+                              const VerticalDivider(width: 1),
+                              Expanded(
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 1440,
+                                    ),
+                                    child: SizedBox.expand(child: pageStack),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : isWide
+                        ? Row(
+                            children: [
+                              NavigationRail(
+                                selectedIndex: _currentIndex,
+                                labelType: NavigationRailLabelType.all,
                                 onDestinationSelected: (index) =>
                                     _openSection(context, index),
-                              ),
-                            ),
-                            const VerticalDivider(width: 1),
-                            Expanded(
-                              child: Center(
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 1440,
+                                destinations: const [
+                                  NavigationRailDestination(
+                                    icon: Icon(Icons.dashboard_outlined),
+                                    selectedIcon: Icon(Icons.dashboard),
+                                    label: Text('Tồn kho'),
                                   ),
-                                  child: SizedBox.expand(child: pageStack),
+                                  NavigationRailDestination(
+                                    icon: Icon(Icons.category_outlined),
+                                    selectedIcon: Icon(Icons.category),
+                                    label: Text('Danh mục'),
+                                  ),
+                                  NavigationRailDestination(
+                                    icon: Icon(Icons.menu_book_outlined),
+                                    selectedIcon: Icon(Icons.menu_book),
+                                    label: Text('Nhật ký'),
+                                  ),
+                                ],
+                              ),
+                              const VerticalDivider(width: 1),
+                              Expanded(
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 1440,
+                                    ),
+                                    child: SizedBox.expand(child: pageStack),
+                                  ),
                                 ),
                               ),
+                            ],
+                          )
+                        : pageStack,
+                  ),
+                  bottomNavigationBar: isWide
+                      ? null
+                      : BottomNavigationBar(
+                          currentIndex: _currentIndex,
+                          onTap: (index) => _openSection(context, index),
+                          items: const [
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.dashboard_outlined),
+                              activeIcon: Icon(Icons.dashboard),
+                              label: 'Tồn kho',
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.category_outlined),
+                              activeIcon: Icon(Icons.category),
+                              label: 'Danh mục',
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.menu_book_outlined),
+                              activeIcon: Icon(Icons.menu_book),
+                              label: 'Nhật ký',
                             ),
                           ],
-                        )
-                      : isWide
-                      ? Row(
-                          children: [
-                            NavigationRail(
-                              selectedIndex: _currentIndex,
-                              labelType: NavigationRailLabelType.all,
-                              onDestinationSelected: (index) =>
-                                  _openSection(context, index),
-                              destinations: const [
-                                NavigationRailDestination(
-                                  icon: Icon(Icons.dashboard_outlined),
-                                  selectedIcon: Icon(Icons.dashboard),
-                                  label: Text('Tồn kho'),
-                                ),
-                                NavigationRailDestination(
-                                  icon: Icon(Icons.category_outlined),
-                                  selectedIcon: Icon(Icons.category),
-                                  label: Text('Danh mục'),
-                                ),
-                                NavigationRailDestination(
-                                  icon: Icon(Icons.menu_book_outlined),
-                                  selectedIcon: Icon(Icons.menu_book),
-                                  label: Text('Nhật ký'),
-                                ),
-                              ],
-                            ),
-                            const VerticalDivider(width: 1),
-                            Expanded(
-                              child: Center(
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 1440,
-                                  ),
-                                  child: SizedBox.expand(child: pageStack),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : pageStack,
-                ),
-                bottomNavigationBar: isWide
-                    ? null
-                    : BottomNavigationBar(
-                        currentIndex: _currentIndex,
-                        onTap: (index) => _openSection(context, index),
-                        items: const [
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.dashboard_outlined),
-                            activeIcon: Icon(Icons.dashboard),
-                            label: 'Tồn kho',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.category_outlined),
-                            activeIcon: Icon(Icons.category),
-                            label: 'Danh mục',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.menu_book_outlined),
-                            activeIcon: Icon(Icons.menu_book),
-                            label: 'Nhật ký',
-                          ),
-                        ],
-                      ),
-              );
-            },
+                        ),
+                );
+              },
+            ),
           ),
           unauthenticated: (_) => const LoginPage(),
           error: (_) => const LoginPage(),

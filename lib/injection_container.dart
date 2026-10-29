@@ -70,9 +70,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => FormulaRemoteDatasource(sl()));
 
   // ── Repositories ──
-  sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(sl()),
-  );
+  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(sl()));
   sl.registerLazySingleton<ProductRepository>(
     () => ProductRepositoryImpl(sl()),
   );
@@ -98,6 +96,7 @@ Future<void> initDependencies() async {
   // ── Use Cases: Auth ──
   sl.registerLazySingleton(() => SignInWithEmail(sl()));
   sl.registerLazySingleton(() => RegisterWithEmail(sl()));
+  sl.registerLazySingleton(() => SendPasswordResetEmail(sl()));
   sl.registerLazySingleton(() => SignOut(sl()));
   sl.registerLazySingleton(() => GetAuthStateChanges(sl()));
 
@@ -160,66 +159,80 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => DeleteFormula(sl()));
 
   // ── BLoCs ──
-  sl.registerFactory(() => AuthBloc(
-    signInWithEmail: sl(),
-    registerWithEmail: sl(),
-    signOut: sl(),
-    getAuthStateChanges: sl(),
-  ));
+  sl.registerFactory(
+    () => AuthBloc(
+      signInWithEmail: sl(),
+      registerWithEmail: sl(),
+      sendPasswordResetEmail: sl(),
+      signOut: sl(),
+      getAuthStateChanges: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => DashboardBloc(
-    getDashboardSummary: sl(),
-    getTotalInventoryValue: sl(),
-    watchDashboardStocks: sl(),
-  ));
+  sl.registerFactory(
+    () => DashboardBloc(
+      getDashboardSummary: sl(),
+      getTotalInventoryValue: sl(),
+      watchDashboardStocks: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => CategoryBloc(
-    getAllProducts: sl(),
-    getProductsPaginated: sl(),
-    addProduct: sl(),
-    updateProduct: sl(),
-    deleteProduct: sl(),
-    updateProductPrice: sl(),
-    getPriceHistory: sl(),
-    addInitialPriceRecord: sl(),
-  ));
+  sl.registerFactory(
+    () => CategoryBloc(
+      getAllProducts: sl(),
+      getProductsPaginated: sl(),
+      addProduct: sl(),
+      updateProduct: sl(),
+      deleteProduct: sl(),
+      updateProductPrice: sl(),
+      getPriceHistory: sl(),
+      addInitialPriceRecord: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => TransactionBloc(
-    getHistory: sl(),
-    getHistoryPaginated: sl(),
-    createExport: sl(),
-    createImport: sl(),
-    updateDebtPayment: sl(),
-    getByProductId: sl(),
-    updateTransaction: sl(),
-  ));
+  sl.registerFactory(
+    () => TransactionBloc(
+      getHistory: sl(),
+      getHistoryPaginated: sl(),
+      createExport: sl(),
+      createImport: sl(),
+      updateDebtPayment: sl(),
+      getByProductId: sl(),
+      updateTransaction: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => CustomerBloc(
-    getAllCustomers: sl(),
-    getCustomersPaginated: sl(),
-    addCustomer: sl(),
-    updateCustomer: sl(),
-    deleteCustomer: sl(),
-    getDebts: sl(),
-    makePayment: sl(),
-    settleAll: sl(),
-  ));
+  sl.registerFactory(
+    () => CustomerBloc(
+      getAllCustomers: sl(),
+      getCustomersPaginated: sl(),
+      addCustomer: sl(),
+      updateCustomer: sl(),
+      deleteCustomer: sl(),
+      getDebts: sl(),
+      makePayment: sl(),
+      settleAll: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => ChecklistBloc(
-    checkStatus: sl(),
-    submitChecklist: sl(),
-  ));
+  sl.registerFactory(
+    () => ChecklistBloc(checkStatus: sl(), submitChecklist: sl()),
+  );
 
-  sl.registerFactory(() => WarehouseBloc(
-    getAllWarehouses: sl(),
-    addWarehouse: sl(),
-    updateWarehouse: sl(),
-    deleteWarehouse: sl(),
-  ));
+  sl.registerFactory(
+    () => WarehouseBloc(
+      getAllWarehouses: sl(),
+      addWarehouse: sl(),
+      updateWarehouse: sl(),
+      deleteWarehouse: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => FormulaBloc(
-    getAllFormulas: sl(),
-    saveFormula: sl(),
-    deleteFormula: sl(),
-  ));
+  sl.registerFactory(
+    () => FormulaBloc(
+      getAllFormulas: sl(),
+      saveFormula: sl(),
+      deleteFormula: sl(),
+    ),
+  );
 }

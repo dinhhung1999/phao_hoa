@@ -81,6 +81,16 @@ class AuthRemoteDatasource {
     }
   }
 
+  /// Send a password reset email.
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') return;
+      throw ServerException(_mapFirebaseAuthError(e.code));
+    }
+  }
+
   /// Sign out
   Future<void> signOut() async {
     await _auth.signOut();
@@ -99,6 +109,8 @@ class AuthRemoteDatasource {
         return 'Mật khẩu quá yếu (cần ít nhất 6 ký tự).';
       case 'invalid-email':
         return 'Email không hợp lệ.';
+      case 'network-request-failed':
+        return 'Không thể kết nối. Vui lòng kiểm tra mạng và thử lại.';
       case 'too-many-requests':
         return 'Quá nhiều lần thử. Vui lòng thử lại sau.';
       default:

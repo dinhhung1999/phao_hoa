@@ -36,6 +36,17 @@ class RegisterWithEmail {
   }
 }
 
+/// Use case for sending a password reset email.
+class SendPasswordResetEmail {
+  final AuthRepository _repository;
+
+  SendPasswordResetEmail(this._repository);
+
+  Future<Either<Failure, void>> call({required String email}) {
+    return _repository.sendPasswordResetEmail(email: email);
+  }
+}
+
 /// Use case for signing out
 class SignOut {
   final AuthRepository _repository;

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_paths.dart';
 import '../models/transaction_model.dart';
@@ -67,6 +68,7 @@ class TransactionRemoteDatasource {
 
     // 1. Create transaction document
     final txData = transaction.toJson()..remove('id');
+    txData['created_by_uid'] = FirebaseAuth.instance.currentUser?.uid;
     // Store total quantity and items summary for quick display in list
     txData['total_quantity'] = items.fold<int>(0, (s, item) => s + item.quantity);
     txData['items_summary'] = items.map((item) => {
@@ -143,6 +145,7 @@ class TransactionRemoteDatasource {
 
     // 1. Create transaction
     final txData = transaction.toJson()..remove('id');
+    txData['created_by_uid'] = FirebaseAuth.instance.currentUser?.uid;
     // Store total quantity and items summary for quick display in list
     txData['total_quantity'] = items.fold<int>(0, (s, item) => s + item.quantity);
     txData['items_summary'] = items.map((item) => {

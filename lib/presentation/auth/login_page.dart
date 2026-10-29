@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/validators.dart';
 import 'auth_bloc.dart';
+import 'forgot_password_dialog.dart';
 
 /// Login / Register page
 class LoginPage extends StatefulWidget {
@@ -50,6 +51,14 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     }
+  }
+
+  Future<void> _showForgotPasswordDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (_) =>
+          ForgotPasswordDialog(initialEmail: _emailController.text.trim()),
+    );
   }
 
   @override
@@ -162,6 +171,14 @@ class _LoginPageState extends State<LoginPage> {
                                     validator: Validators.validatePassword,
                                     onFieldSubmitted: (_) => _submit(),
                                   ),
+                                  if (!_isRegisterMode)
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton(
+                                        onPressed: _showForgotPasswordDialog,
+                                        child: const Text('Quên mật khẩu?'),
+                                      ),
+                                    ),
                                   const SizedBox(height: 24),
                                   BlocBuilder<AuthBloc, AuthState>(
                                     builder: (context, state) {

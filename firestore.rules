@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownerPath() {
+      return /databases/$(database)/documents/app_config/access_control;
+    }
+
+    function staffPath() {
+      return /databases/$(database)/documents/staff_profiles/$(request.auth.uid);
+    }
+
+    function isOwner() {
+      return signedIn()
+        && exists(ownerPath())
+        && (
+          get(ownerPath()).data.keys().hasAny(['owner_uids'])
+            ? (get(ownerPath()).data.owner_uids is list
+              && request.auth.uid in get(ownerPath()).data.owner_uids)
+            : get(ownerPath()).data.get('owner_uid', '') == request.auth.uid
+        );
+    }
+
+    function isActiveStaff() {
+      return signedIn()
+        && exists(staffPath())
+        && get(staffPath()).data.active == true
+        && get(staffPath()).data.role == 'employee';
+    }
+
+    function canUseApp() {
+      return isOwner() || isActiveStaff();
+    }
+
+    // Manage owner_uids in Firebase Console using existing Auth UIDs.
+    // Client writes are deliberately forbidden to prevent self-promotion.
+    match /app_config/access_control {
+      allow get: if signedIn();
+      allow list, create, update, delete: if false;
+    }
+
+    match /app_config/{configId} {
+      allow read, write: if configId != 'access_control' && canUseApp();
+    }
+
+    match /staff_profiles/{staffUid} {
+      allow get: if isOwner() || (signedIn() && request.auth.uid == staffUid);
+      allow list: if isOwner();
+      allow create: if isOwner()
+        && request.resource.data.keys().hasAll(['name', 'email', 'role', 'active'])
+        && request.resource.data.keys().hasOnly([
+          'name', 'email', 'role', 'active', 'created_at', 'created_by_uid'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.role == 'employee'
+        && request.resource.data.active == true;
+      allow update: if isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'active'])
+        && request.resource.data.name is string
+        && request.resource.data.active is bool;
+      allow delete: if false;
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if canUseApp();
+      allow create: if isOwner() || (
+        isActiveStaff()
+        && request.resource.data.created_by == request.auth.token.email
+        && request.resource.data.created_by_uid == request.auth.uid
+      );
+      allow update: if isOwner() || (
+        isActiveStaff()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['created_by', 'created_by_uid'])
+      );
+      allow delete: if canUseApp();
+      match /items/{itemId} {
+        allow read, write: if canUseApp();
+      }
+    }
+
+    match /{collection}/{document=**} {
+      allow read, write: if collection in [
+        'products', 'inventory', 'customers', 'warehouses',
+        'reconciliations', 'daily_checklists', 'product_formulas'
+      ] && canUseApp();
+    }
+  }
+}

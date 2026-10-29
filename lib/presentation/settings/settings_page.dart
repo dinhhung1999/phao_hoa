@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/data_reset_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../auth/auth_bloc.dart';
+import '../../core/services/staff_service.dart';
 
 /// Settings page — accessed from home page app bar
 class SettingsPage extends StatefulWidget {
@@ -355,6 +357,41 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
 
             const SizedBox(height: 24),
+
+            StreamBuilder(
+              stream: StaffService().accessControl.snapshots(),
+              builder: (context, snapshot) {
+                if (!StaffService.ownerUids(
+                  snapshot.data?.data(),
+                ).contains(FirebaseAuth.instance.currentUser?.uid)) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Nhân viên',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.groups_outlined),
+                        title: const Text('Quản lý nhân viên & doanh số'),
+                        subtitle: const Text(
+                          'Thêm, khóa tài khoản và xem doanh số theo nhân viên',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('/staff'),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+            ),
 
             // ── Warehouse Management Section ──
             Text(

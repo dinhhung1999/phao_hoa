@@ -23,6 +23,9 @@ abstract class AuthRepository {
     String? displayName,
   });
 
+  /// Send a password reset email.
+  Future<Either<Failure, void>> sendPasswordResetEmail({required String email});
+
   /// Sign out
   Future<Either<Failure, void>> signOut();
 }

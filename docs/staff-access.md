@@ -1,0 +1,13 @@
+# Quyền chủ cửa hàng và nhân viên
+
+1. Trong Firebase Console → Authentication → Users, sao chép **UID** của từng tài khoản chủ cửa hàng.
+2. Soát lại Rules đang chạy trên Console vì `firebase deploy --only firestore:rules` thay thế toàn bộ Rules cũ. Triển khai Rules mới trước; ứng dụng sẽ tạm bị khóa đến khi tạo document ở bước tiếp theo.
+3. Trong Firestore Database, tạo document `app_config/access_control` với field `owner_uids` (kiểu **array**). Mỗi phần tử là một UID kiểu **string** ở bước 1. Document này chỉ được tạo/sửa qua Firebase Console, không qua ứng dụng. Ví dụ: `owner_uids: ["UID_CHU_1", "UID_CHU_2"]`.
+4. Nếu đã có tài khoản nhân viên cũ, tạo `staff_profiles/{UID}` cho từng người với `name` (string), `email` (string, chữ thường), `role` = `employee`, `active` = `true` (boolean). Tài khoản không có hồ sơ sẽ bị chặn.
+5. Triển khai Hosting. Lệnh Hosting riêng `firebase deploy --only hosting:moi` **không** cập nhật Rules.
+
+Nếu bạn đã tạo field `owner_uid` trước đó, ứng dụng và Rules vẫn đọc được field này khi chưa có `owner_uids`. Để chuyển sang nhiều chủ, thêm `owner_uids` chứa **tất cả** UID chủ, bao gồm UID cũ. Khi `owner_uids` tồn tại, `owner_uid` không còn được dùng; có thể xóa field cũ sau khi kiểm tra danh sách. Muốn thu hồi quyền chủ, xóa UID tương ứng khỏi mảng `owner_uids`.
+
+Trong ứng dụng, chủ cửa hàng mở **Cài đặt → Quản lý nhân viên & doanh số**. Nút “Xóa / khóa quyền” đặt `active=false` để thu hồi quyền Firestore trên máy chủ và giữ lịch sử phiếu xuất. Nhân viên cần kết nối mạng để ứng dụng xác nhận quyền trước khi mở dữ liệu. Dữ liệu đã được lưu cục bộ trên thiết bị trước khi khóa không thể bị xóa từ xa. Với kiến trúc Spark hiện tại, trình duyệt không thể xóa tài khoản Auth của người khác; email vẫn tồn tại trong Authentication. Muốn xóa vĩnh viễn tài khoản Auth, thực hiện thủ công trong Firebase Console. Mở lại tài khoản dùng cùng hồ sơ và UID.
+
+Doanh số = tổng `total_value` của phiếu `xuat` theo `created_by_uid` trong khoảng ngày đã chọn. Báo cáo có tổng toàn cửa hàng, doanh số từng chủ, doanh số nhân viên và nhóm chưa xác định khi phiếu cũ không thể đối chiếu tài khoản. Phiếu cũ chưa có UID được đối chiếu bằng `created_by` (email người lập). Email của chủ đang đăng nhập được lấy từ Firebase Auth; email của chủ khác được lấy từ phiếu mới có UID hoặc hồ sơ sẵn có. Để gán chính xác phiếu cũ của các chủ khác, có thể thêm field `owner_emails` kiểu **map** vào `app_config/access_control`, với mỗi khóa là UID chủ và giá trị là email đăng nhập (ví dụ `{"UID_CHU_2": "chu2@example.com"}`). Nếu thiếu email đối chiếu, phiếu cũ vẫn nằm trong tổng toàn cửa hàng nhưng được xếp vào nhóm chưa xác định. Màn quản lý chỉ cho sửa tên để giữ liên kết với lịch sử cũ.

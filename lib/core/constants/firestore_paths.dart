@@ -11,6 +11,7 @@ class FirestorePaths {
   static const String reconciliations = 'reconciliations';
   static const String dailyChecklists = 'daily_checklists';
   static const String appConfig = 'app_config';
+  static const String staffProfiles = 'staff_profiles';
 
   // Sub-collections
   static const String transactionItems = 'items';
@@ -22,4 +23,5 @@ class FirestorePaths {
   // App config documents
   static const String settingsDoc = 'settings';
   static const String warehouseConfigDoc = 'warehouse_config';
+  static const String accessControlDoc = 'access_control';
 }

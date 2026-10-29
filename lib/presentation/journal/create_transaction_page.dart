@@ -393,7 +393,9 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
       paidAmount: paidAmount,
       note: _noteCtl.text.trim().isNotEmpty ? _noteCtl.text.trim() : null,
       createdAt: now,
-      createdBy: userEmail,
+      createdBy: widget.isEditing
+          ? widget.editTransaction!.createdBy
+          : userEmail,
       items: items,
     );
 

@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../core/errors/failures.dart';
 import '../../core/services/web_push_service.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/usecases/auth/auth_usecases.dart';
@@ -13,6 +15,7 @@ part 'auth_bloc.freezed.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SignInWithEmail _signInWithEmail;
   final RegisterWithEmail _registerWithEmail;
+  final SendPasswordResetEmail? _sendPasswordResetEmail;
   final SignOut _signOut;
   final GetAuthStateChanges _getAuthStateChanges;
 
@@ -23,8 +26,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required RegisterWithEmail registerWithEmail,
     required SignOut signOut,
     required GetAuthStateChanges getAuthStateChanges,
+    SendPasswordResetEmail? sendPasswordResetEmail,
   }) : _signInWithEmail = signInWithEmail,
        _registerWithEmail = registerWithEmail,
+       _sendPasswordResetEmail = sendPasswordResetEmail,
        _signOut = signOut,
        _getAuthStateChanges = getAuthStateChanges,
        super(const AuthState.initial()) {
@@ -33,6 +38,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<_SignIn>(_onSignIn);
     on<_Register>(_onRegister);
     on<_SignOut>(_onSignOut);
+  }
+
+  Future<Either<Failure, void>> sendPasswordResetEmail({
+    required String email,
+  }) {
+    final sendResetEmail = _sendPasswordResetEmail;
+    if (sendResetEmail == null) {
+      return Future.value(
+        const Left(ServerFailure('Không thể gửi email đặt lại mật khẩu.')),
+      );
+    }
+    return sendResetEmail(email: email);
   }
 
   void _onCheckAuthStatus(_CheckAuthStatus event, Emitter<AuthState> emit) {

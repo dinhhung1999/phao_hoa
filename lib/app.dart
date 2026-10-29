@@ -18,6 +18,8 @@ import 'presentation/home_page.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/web_push_service.dart';
 import 'presentation/auth/login_page.dart';
+import 'presentation/auth/access_gate.dart';
+import 'presentation/staff/staff_page.dart';
 import 'presentation/dashboard/statistics_page.dart';
 import 'presentation/journal/daily_report_page.dart';
 import 'presentation/settings/settings_page.dart';
@@ -77,6 +79,15 @@ class PhaoHoaApp extends StatelessWidget {
         path: '/settings',
         pageBuilder: (context, state) =>
             _routePage(state, const _AuthenticatedRoute(child: SettingsPage())),
+      ),
+      GoRoute(
+        path: '/staff',
+        pageBuilder: (context, state) => _routePage(
+          state,
+          const _AuthenticatedRoute(
+            child: AccessGate(ownerOnly: true, child: StaffPage()),
+          ),
+        ),
       ),
       GoRoute(
         path: '/statistics',
@@ -223,7 +234,7 @@ class _AuthenticatedRoute extends StatelessWidget {
         loading: (_) => const Scaffold(
           body: Center(child: CircularProgressIndicator.adaptive()),
         ),
-        authenticated: (_) => child,
+        authenticated: (_) => AccessGate(child: child),
         unauthenticated: (_) => const LoginPage(),
         error: (_) => const LoginPage(),
       ),
