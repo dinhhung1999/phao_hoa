@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/data_reset_service.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/services/web_push_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../auth/auth_bloc.dart';
@@ -23,15 +22,11 @@ class _SettingsPageState extends State<SettingsPage> {
   int _reminderMinute = 0;
   bool _reminderEnabled = true;
   bool _isResetting = false;
-  bool _webPushSupported = true;
-  bool _webPushEnabled = false;
-  bool _webPushBusy = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    if (kIsWeb) _loadWebPushStatus();
   }
 
   static const _prefKeyHour = 'reminder_hour';
@@ -50,60 +45,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _reminderMinute = prefs.getInt(_prefKeyMinute) ?? 0;
       _reminderEnabled = prefs.getBool(_prefKeyEnabled) ?? true;
     });
-  }
-
-  Future<void> _loadWebPushStatus() async {
-    final service = WebPushService();
-    var supported = false;
-    try {
-      supported = await service.isSupported();
-      if (supported && service.isConfigured) {
-        await service.restoreIfAllowed();
-      }
-    } catch (error) {
-      debugPrint('Could not check Web Push support: $error');
-    }
-    if (!mounted) return;
-    setState(() {
-      _webPushSupported = supported;
-      _webPushEnabled = service.isRegistered;
-    });
-  }
-
-  Future<void> _toggleWebPush(bool enabled) async {
-    setState(() => _webPushBusy = true);
-    try {
-      if (enabled) {
-        await WebPushService().enable();
-      } else {
-        await WebPushService().disable();
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$error'), backgroundColor: AppColors.error),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _webPushEnabled = WebPushService().isRegistered;
-          _webPushBusy = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _sendWebPushTest() async {
-    try {
-      await WebPushService().sendTest();
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$error'), backgroundColor: AppColors.error),
-        );
-      }
-    }
   }
 
   Future<void> _saveSettings() async {
@@ -199,23 +140,10 @@ class _SettingsPageState extends State<SettingsPage> {
       final service = DataResetService();
       final results = await service.resetSelectiveData(selectedTypes);
       final totalDeleted = results.values.fold(0, (a, b) => a + b);
-      var pushSent = true;
-      if (totalDeleted > 0) {
-        try {
-          await WebPushService().notifyDataReset(results);
-        } catch (error) {
-          pushSent = false;
-          debugPrint('Could not send data reset notification: $error');
-        }
-      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              pushSent
-                  ? 'Đã xoá $totalDeleted bản ghi thành công.'
-                  : 'Đã xoá $totalDeleted bản ghi; không gửi được Web Push.',
-            ),
+            content: Text('Đã xoá $totalDeleted bản ghi thành công.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -510,51 +438,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: const Icon(Icons.send_outlined, size: 18),
                 label: const Text('Gửi thông báo thử'),
               ),
-
-            if (kIsWeb) ...[
-              const SizedBox(height: 24),
-              Text(
-                'Web Push',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      secondary: const Icon(
-                        Icons.notifications_active_outlined,
-                      ),
-                      title: const Text('Thông báo thay đổi dữ liệu'),
-                      subtitle: Text(
-                        !WebPushService().isConfigured
-                            ? 'Cần cấu hình VAPID public key khi build Web.'
-                            : !_webPushSupported
-                            ? 'Trình duyệt này không hỗ trợ Web Push.'
-                            : 'Nhận thông báo nhập, xuất, kiểm kho, sửa và xóa dữ liệu, kể cả khi đóng tab.',
-                      ),
-                      value: _webPushEnabled,
-                      onChanged:
-                          _webPushBusy ||
-                              !_webPushSupported ||
-                              !WebPushService().isConfigured
-                          ? null
-                          : _toggleWebPush,
-                    ),
-                    if (_webPushEnabled) ...[
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.send_outlined),
-                        title: const Text('Gửi thử Web Push'),
-                        onTap: _sendWebPushTest,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
 
             const SizedBox(height: 32),
 

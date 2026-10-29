@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -42,56 +43,74 @@ class PhaoHoaApp extends StatelessWidget {
       GoRoute(path: '/', redirect: (_, __) => '/journal'),
       GoRoute(
         path: '/inventory',
-        builder: (_, __) => const HomePage(initialIndex: 0),
+        pageBuilder: (context, state) =>
+            _routePage(state, const HomePage(initialIndex: 0)),
       ),
       GoRoute(path: '/catalog', redirect: (_, __) => '/catalog/products'),
       GoRoute(
         path: '/catalog/products',
-        builder: (_, __) =>
-            const HomePage(initialIndex: 1, initialCatalogTab: 0),
+        pageBuilder: (context, state) => _routePage(
+          state,
+          const HomePage(initialIndex: 1, initialCatalogTab: 0),
+        ),
       ),
       GoRoute(
         path: '/catalog/customers',
-        builder: (_, __) =>
-            const HomePage(initialIndex: 1, initialCatalogTab: 1),
+        pageBuilder: (context, state) => _routePage(
+          state,
+          const HomePage(initialIndex: 1, initialCatalogTab: 1),
+        ),
       ),
       GoRoute(
         path: '/catalog/formulas',
-        builder: (_, __) =>
-            const HomePage(initialIndex: 1, initialCatalogTab: 2),
+        pageBuilder: (context, state) => _routePage(
+          state,
+          const HomePage(initialIndex: 1, initialCatalogTab: 2),
+        ),
       ),
       GoRoute(
         path: '/journal',
-        builder: (_, __) => const HomePage(initialIndex: 2),
+        pageBuilder: (context, state) =>
+            _routePage(state, const HomePage(initialIndex: 2)),
       ),
       GoRoute(
         path: '/settings',
-        builder: (_, __) => const _AuthenticatedRoute(child: SettingsPage()),
+        pageBuilder: (context, state) =>
+            _routePage(state, const _AuthenticatedRoute(child: SettingsPage())),
       ),
       GoRoute(
         path: '/statistics',
-        builder: (context, __) => _AuthenticatedRoute(
-          child: BlocProvider.value(
-            value: context.read<TransactionBloc>(),
-            child: const StatisticsPage(),
+        pageBuilder: (context, state) => _routePage(
+          state,
+          _AuthenticatedRoute(
+            child: BlocProvider.value(
+              value: context.read<TransactionBloc>(),
+              child: const StatisticsPage(),
+            ),
           ),
         ),
       ),
       GoRoute(
         path: '/daily-report',
-        builder: (context, __) => _AuthenticatedRoute(
-          child: BlocProvider.value(
-            value: context.read<TransactionBloc>(),
-            child: const DailyReportPage(),
+        pageBuilder: (context, state) => _routePage(
+          state,
+          _AuthenticatedRoute(
+            child: BlocProvider.value(
+              value: context.read<TransactionBloc>(),
+              child: const DailyReportPage(),
+            ),
           ),
         ),
       ),
       GoRoute(
         path: '/warehouses',
-        builder: (_, __) => _AuthenticatedRoute(
-          child: BlocProvider(
-            create: (_) => sl<WarehouseBloc>(),
-            child: const WarehouseListPage(),
+        pageBuilder: (context, state) => _routePage(
+          state,
+          _AuthenticatedRoute(
+            child: BlocProvider(
+              create: (_) => sl<WarehouseBloc>(),
+              child: const WarehouseListPage(),
+            ),
           ),
         ),
       ),
@@ -115,7 +134,6 @@ class PhaoHoaApp extends StatelessWidget {
           state.mapOrNull(
             authenticated: (_) {
               WebPushService().listenInForeground(onOpen: _router.go);
-              unawaited(WebPushService().restoreIfAllowed());
             },
           );
         },
@@ -138,6 +156,34 @@ class PhaoHoaApp extends StatelessWidget {
       ),
     );
   }
+}
+
+Page<void> _routePage(GoRouterState state, Widget child) {
+  final name = state.name ?? state.path;
+  final arguments = <String, String>{
+    ...state.pathParameters,
+    ...state.uri.queryParameters,
+  };
+  final key = state.pageKey;
+  final restorationId = key.value;
+
+  if (kIsWeb) {
+    return NoTransitionPage<void>(
+      key: key,
+      name: name,
+      arguments: arguments,
+      restorationId: restorationId,
+      child: child,
+    );
+  }
+
+  return MaterialPage<void>(
+    key: key,
+    name: name,
+    arguments: arguments,
+    restorationId: restorationId,
+    child: child,
+  );
 }
 
 class _AuthenticatedRoute extends StatelessWidget {
